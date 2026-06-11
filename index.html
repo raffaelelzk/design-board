@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计台本 (云端协同版)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f5f6f8;color:#2c2c2c;min-height:100vh}
+
+.dash{display:flex;flex-direction:column;min-height:100vh}
+.dash-top{padding:20px 32px;background:#fff;border-bottom:1px solid #e8e8ec;display:flex;justify-content:space-between;align-items:center}
+.dash-top h1{font-size:20px;font-weight:700}
+.dash-top input{padding:8px 14px;border-radius:6px;border:1px solid #dde;font-size:13px;width:220px;font-family:inherit}
+.dash-top button{padding:8px 18px;border-radius:6px;border:none;background:#d4a030;color:#fff;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
+.dash-top button:hover{background:#c09020}
+.dash-body{display:flex;flex:1}
+.dash-nav{width:180px;padding:16px 0;border-right:1px solid #e8e8ec;background:#fff}
+.dash-nav a{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:13px;color:#555;text-decoration:none}
+.dash-nav a:hover,.dash-nav a.on{background:#f5f6f8;color:#1a1a1a}
+.dash-main{flex:1;padding:24px 32px}
+.dash-main h2{font-size:13px;color:#888;margin-bottom:14px;font-weight:500}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.pcard{background:#fff;border-radius:10px;padding:20px;cursor:pointer;border:2px solid transparent;text-align:center;transition:.18s;position:relative;display:flex;flex-direction:column;align-items:center;gap:6px}
+.pcard:hover{border-color:#d4a030;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.pcard.add{border:2px dashed #dde;color:#888;justify-content:center;min-height:120px}
+.pcard.add:hover{border-color:#aaa;background:#fafafc}.pcard .icon{font-size:28px}.pcard .name{font-size:14px;font-weight:600}.pcard .date{font-size:10px;color:#aaa}.pcard .count{font-size:11px;color:#888}.pcard .del{position:absolute;top:6px;right:10px;font-size:18px;color:#ccc;cursor:pointer;display:none}.pcard:hover .del{display:block}.pcard .del:hover{color:#e04040}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center}
+.modal.show{display:flex}
+.modal .box{background:#fff;border-radius:14px;padding:24px;width:400px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.15)}
+.modal .box h3{font-size:16px;margin-bottom:14px}
+.modal .box label{display:block;font-size:10px;color:#888;margin:8px 0 3px;font-weight:600}
+.modal .box input,.modal .box select,.modal .box textarea{width:100%;padding:7px 10px;border-radius:5px;border:1px solid #dde;font-size:12px;font-family:inherit}
+.modal .box textarea{min-height:50px;resize:vertical}
+.modal .box input:focus,.box select:focus,.box textarea:focus{outline:none;border-color:#d4a030}
+.btns{display:flex;gap:8px;margin-top:14px;justify-content:flex-end}
+.btns button{padding:7px 16px;border-radius:5px;border:1px solid #dde;background:#fff;font-size:12px;cursor:pointer;font-family:inherit}
+.btns button.primary{background:#d4a030;color:#fff;border-color:#d4a030;font-weight:600}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:4px;border:1px solid #eee;border-radius:6px;max-height:100px;overflow-y:auto}
+.emoji-grid span{cursor:pointer;font-size:18px;text-align:center;padding:3px;border-radius:3px}
+.emoji-grid span:hover{background:#f0ece5}.emoji-grid span.sel{background:#fdf8ec;box-shadow:0 0 0 2px #d4a030}
+
+.editor{display:none;flex-direction:column;min-height:100vh}
+.editor.active{display:flex}
+.etop{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:46px;background:#1a1a1a;color:#fff}
+.etop .back{cursor:pointer;font-size:13px;color:#aaa;padding:3px 10px;border-radius:4px}
+.etop .back:hover{color:#fff;background:rgba(255,255,255,.08)}
+.etop .title{font-weight:700;font-size:14px}
+.etop button{padding:4px 12px;border-radius:4px;border:none;background:transparent;color:#aaa;font-size:11px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.etop button:hover{color:#fff;background:rgba(255,255,255,.08)}
+.etop .primary{background:#d4a030;color:#1a1a1a;font-weight:600}
+.etabs{display:flex;padding:0 24px;background:#fff;border-bottom:1px solid #e8e8ec}
+.etab{padding:11px 20px;font-size:12px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;user-select:none}
+.etab:hover{color:#333}.etab.active{color:#1a1a1a;border-bottom-color:#d4a030;font-weight:600}
+.etoolbar{display:flex;align-items:center;justify-content:space-between;padding:7px 24px;background:#fff;border-bottom:1px solid #f0f0f2;font-size:11px}
+.etoolbar .left{display:flex;gap:5px}.etoolbar .left button{padding:4px 10px;border-radius:3px;border:1px solid #dde;background:#fff;color:#555;font-size:10px;cursor:pointer;font-family:inherit}
+.etoolbar .left button:hover{background:#f5f6f8}.etoolbar .right{color:#999;display:flex;gap:10px;align-items:center}
+
+.overview{display:none;padding:14px 24px;background:#fff;border-bottom:1px solid #f0f0f2}
+.overview.show{display:block}.overview h3{font-size:11px;color:#888;margin-bottom:6px}
+.overview textarea{width:100%;padding:8px;border-radius:5px;border:1px solid #dde;font-family:inherit;font-size:12px;resize:vertical;min-height:50px}
+.overview .ofiles{margin-top:6px;display:flex;gap:4px;flex-wrap:wrap}
+.overview .fchip{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;background:#f5f6f8;border:1px solid #e8e8ec;font-size:10px;transition:0.2s}
+.overview .fchip a:hover{color:#d4a030!important}
+.overview .fchip span{cursor:pointer;color:#ccc}.overview .fchip span:hover{color:#e04040}
+
+.twrapper{overflow:auto;flex:1}
+.twrapper table{border-collapse:collapse;font-size:12px;width:max-content;min-width:100%}
+.twrapper thead{position:sticky;top:0;z-index:3}
+.twrapper thead th{background:#fafafc;padding:8px 10px;font-size:10px;font-weight:600;color:#666;border-bottom:1px solid #e8e8ec;border-right:1px solid #f0f0f2;white-space:nowrap;text-align:left;user-select:none}
+.twrapper thead th:last-child{border-right:none}
+.twrapper tbody td{padding:6px 10px;border-bottom:1px solid #f0f0f2;border-right:1px solid #f5f5f8;vertical-align:top;white-space:normal;word-break:break-word}
+.twrapper tbody td:last-child{border-right:none}
+.twrapper tbody tr:hover td{background:#f8f8fb}
+.twrapper tbody tr.sel td{background:#fdf8ec!important}
+
+.edit-div{max-height:120px;overflow-y:auto;outline:none;border-radius:2px;min-height:20px;line-height:1.4;padding:2px}
+.edit-div:focus{background:#eef;box-shadow:0 0 0 1.5px #88b}
+.edit-div:empty::before{content:attr(data-placeholder);color:#bbb}
+
+.img-add{width:60px;height:38px;border-radius:4px;border:1.5px dashed #dde;display:inline-flex;align-items:center;justify-content:center;color:#bbb;font-size:10px;cursor:pointer;background:#fafafc}
+.img-add:hover{border-color:#aaa}.img-add input{display:none}
+.img-wrap{position:relative;display:inline-block;margin-right:2px;margin-bottom:2px}.img-wrap:hover .img-x{display:flex!important}
+.img-x{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:#e04040;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;cursor:pointer}
+
+.ph{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:500;cursor:pointer;white-space:nowrap}.ph-r{background:#e8f0fe;color:#3d6ea8}.ph-e{background:#fdf0e8;color:#a07030}.ph-d{background:#f5e8f5;color:#8a4a8a}.ph-v{background:#e8f5ec;color:#3d7a4a}.ph-l{background:#ece8f5;color:#5a3d8a}
+.row-cb{width:13px;height:13px;cursor:pointer;accent-color:#d4a030}
+.tab-c{display:none}.tab-c.active{display:block}
+
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:none;align-items:center;justify-content:center;cursor:pointer}
+.lb.show{display:flex}.lb img{max-width:92vw;max-height:92vh;border-radius:8px}
+
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;z-index:200;pointer-events:none;animation:to 2s forwards}
+@keyframes to{0%,70%{opacity:1}100%{opacity:0}}
+
+/* 云端加载专属遮罩 */
+#loading{position:fixed;inset:0;background:#fff;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px;color:#2c2c2c;font-weight:600;}
+.spinner {border: 3px solid #f3f3f3;border-top: 3px solid #d4a030;border-radius: 50%;width: 30px;height: 30px;animation: spin 1s linear infinite;margin-bottom:15px;}
+@keyframes spin {0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <span>连接云端大脑中...</span>
+  <small style="margin-top:8px;color:#aaa;font-weight:400">正在拉取最新项目资产与配置</small>
+</div>
+
+<div class="dash" id="dash" style="display:none">
+  <div class="dash-top">
+    <h1>我的项目 (云端同步中)</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="text" placeholder="搜索项目名..." id="dashSearch" oninput="renderDash()">
+      <button onclick="openNewProject()">+ 新建项目</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="dash-nav"><a href="#" class="on">📁 项目</a></div>
+    <div class="dash-main" id="dashMain"></div>
+  </div>
+</div>
+
+<div class="modal" id="newModal"><div class="box">
+  <h3>创建项目</h3>
+  <label>项目名</label><input id="npName" placeholder="必填">
+  <label>图标</label><div class="emoji-grid" id="emojiGrid"></div>
+  <div class="btns"><button onclick="hideModal('newModal')">取消</button><button class="primary" onclick="createProject()">创建</button></div>
+</div></div>
+
+<div class="editor" id="editor">
+  <div class="etop">
+    <span class="back" onclick="backToDash()">← 返回</span>
+    <span class="title" id="edTitle"></span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button onclick="manageThemes()">主题</button>
+      <button onclick="exportPDF()">导出PDF</button>
+      <span style="color:#444;margin:0 4px">|</span>
+      <button onclick="saveVersion()" title="保存当前版本" style="font-size:15px;padding:4px 8px">💾</button>
+      <button onclick="openVersions()" title="查看历史版本" style="font-size:15px;padding:4px 8px">🕒</button>
+      <button class="primary" onclick="openProductModal()" style="margin-left:6px">+ 产品</button>
+    </div>
+  </div>
+
+  <div style="display:flex;flex:1;overflow:hidden">
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="etabs">
+        <div class="etab active" onclick="switchTab(0)">产品地图</div>
+        <div class="etab" onclick="switchTab(1)">文化叙事</div>
+        <div class="etab" onclick="switchTab(2)">工艺手册</div>
+        <div class="etab" onclick="switchTab(3)">提案输出</div>
+      </div>
+      <div class="overview show" id="overview">
+        <h3>项目概述</h3>
+        <textarea id="ovText" placeholder="描述项目背景、目标、约束..." onchange="saveOverview()"></textarea>
+        <div class="ofiles" id="ovFiles"></div>
+        <label style="cursor:pointer;font-size:10px;color:#888;margin-top:4px;display:inline-block">+ 文件<input type="file" multiple onchange="addOverviewFile()" style="display:none"></label>
+        <button onclick="saveOverview();toast('已同步云端')" style="margin-left:8px;padding:3px 10px;border-radius:3px;border:1px solid #d4a030;background:#d4a030;color:#fff;font-size:10px;cursor:pointer;font-family:inherit">保存</button>
+      </div>
+      <div class="etoolbar" id="toolbar">
+        <div class="left">
+          <button onclick="addRow()">+ 行</button>
+          <button onclick="deleteSelected()">删除</button>
+          <button onclick="dupeSelected()">复制</button>
+          <span style="color:#ddd">|</span>
+          <button onclick="selectAll()">全选</button>
+          <button onclick="selectNone()">取消</button>
+        </div>
+        <div class="right"><span onclick="undo()" style="cursor:pointer">撤销</span><span onclick="redo()" style="cursor:pointer">重做</span><span id="rowCount"></span></div>
+      </div>
+      <div class="tab-c active" id="tab0"><div class="twrapper" id="tw0"></div></div>
+      <div class="tab-c" id="tab1"><div class="twrapper" id="tw1"></div></div>
+      <div class="tab-c" id="tab2"><div class="twrapper" id="tw2"></div></div>
+      <div class="tab-c" id="tab3" style="padding:20px;background:#f5f6f8">
+        <div style="background:#fff;border-radius:8px;padding:20px;font-size:12px;line-height:1.7;white-space:pre-wrap;color:#333;max-height:60vh;overflow-y:auto;border:1px solid #e8e8ec" id="briefPrev"></div>
+        <div style="margin-top:10px;display:flex;gap:6px"><button onclick="copyBrief()" style="padding:5px 12px;border-radius:5px;border:1px solid #dde;background:#fff;cursor:pointer;font-family:inherit;font-size:11px">复制</button><button onclick="downloadBrief()" style="padding:5px 12px;border-radius:5px;border:1px solid #dde;background:#fff;cursor:pointer;font-family:inherit;font-size:11px">下载.md</button></div>
+      </div>
+    </div>
+  </div></div><div class="lb" id="lightbox" onclick="this.classList.remove('show')"><img id="lbImg"></div>
+
+<div class="modal" id="prodModal"><div class="box"><h3>添加产品</h3>
+  <label>产品名</label><input id="pmName"><label>主题</label><select id="pmTheme"></select>
+  <label>品类</label><input id="pmCat"><label>材质</label><input id="pmMat"><label>工艺</label><input id="pmProc">
+  <label>视觉方向</label><textarea id="pmVis" rows="2"></textarea>
+  <label>历史背景</label><textarea id="pmStory" rows="2"></textarea>
+  <label>约束备注</label><textarea id="pmNotes" rows="2"></textarea>
+  <div class="btns"><button onclick="hideModal('prodModal')">取消</button><button class="primary" onclick="addProductFromModal()">添加</button></div>
+</div></div>
+
+<div class="modal" id="themeModal"><div class="box"><h3>管理主题</h3><div id="themeChips"></div><label>新主题</label><input id="newThemeName"><div class="btns"><button onclick="addTheme()">添加</button><button onclick="hideModal('themeModal')">关闭</button></div></div></div>
+
+<div class="modal" id="verModal"><div class="box"><h3>版本历史</h3><div id="verList"></div><div class="btns"><button onclick="hideModal('verModal')">关闭</button></div></div></div>
+
+<script>
+// ==================== 1. 云端大脑初始化 (Supabase) ====================
+const supabaseUrl = 'https://rvklyahwvczxtpqxdnpl.supabase.co';
+const supabaseKey = 'sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj';
+const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const BUCKET_NAME = 'design-images';
+const STORE_FILE = 'system_store.json';
+
+// 全局状态
+var store = { projects: {} };
+var ap = null, sel = new Set(), tab = 0;
+
+// ==================== 2. 核心云端存取逻辑 ====================
+// 保存全量数据到图床（自动覆盖旧版）
+async function saveStore() {
+  try {
+    var cleanStore = JSON.parse(JSON.stringify(store));
+    Object.values(cleanStore.projects).forEach(function(p){
+      if(p.undoStack && p.undoStack.length > 10) p.undoStack = p.undoStack.slice(-10);
+    });
+    var blob = new Blob([JSON.stringify(cleanStore)], { type: 'application/json' });
+    
+    // 使用 upsert: true 强制覆盖存储
+    const { error } = await _supabase.storage.from(BUCKET_NAME).upload(STORE_FILE, blob, {
+      upsert: true,
+      cacheControl: '0' 
+    });
+    if (error) console.error("云端保存失败:", error);
+  } catch(e) { console.error(e); }
+}
+
+// 图片云端上传核心引擎
+async function uploadImg(id, f, input) {
+  var file = input.files[0];
+  if(!file) return;
+  toast('云端上传中，请稍候...');
+  
+  var ext = file.name.split('.').pop();
+  var fileName = 'img_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + ext;
+  
+  const { data, error } = await _supabase.storage.from(BUCKET_NAME).upload(fileName, file);
+  if(error) { alert('上传失败: ' + error.message); return; }
+  
+  // 获取公开直链
+  const pub = _supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName).data;
+  
+  var r = ap.rows.find(function(item){ return item.id === id });
+  if(r) {
+    r[f] = pub.publicUrl;
+    saveStore(); // 图片链接写入数据并同步
+    renderTables();
+    toast('图片已无缝上云');
+  }
+}
+
+// 多图情绪板云端上传
+async function addMoodboard(id, input) {
+  var r = ap.rows.find(function(item){ return item.id === id });
+  if(!r) return;
+  if(!r.moodboard) r.moodboard = [];
+  
+  toast('情绪板多图上云中...');
+  for(var i=0; i<input.files.length; i++){
+    var file = input.files[i];
+    var ext = file.name.split('.').pop();
+    var fileName = 'mb_' + Date.now() + '_' + Math.floor(Math.random()*1000) + '.' + ext;
+    
+    const { error } = await _supabase.storage.from(BUCKET_NAME).upload(fileName, file);
+    if(!error) {
+       const pub = _supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName).data;
+       r.moodboard.push(pub.publicUrl);
+    }
+  }
+  saveStore();
+  renderTables();
+  toast('情绪板上传完毕');
+}
+
+// 附件云端上传
+async function addOverviewFile(){
+  toast('附件上云中...');
+  for(let f of Array.from(event.target.files)){
+     let ext = f.name.split('.').pop();
+     let fileName = 'file_' + Date.now() + '_' + Math.floor(Math.random()*100) + '.' + ext;
+     let { error } = await _supabase.storage.from(BUCKET_NAME).upload(fileName, f);
+     if(!error){
+        let pub = _supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName).data;
+        ap.overviewFiles.push({name: f.name, data: pub.publicUrl});
+     }
+  }
+  saveStore();
+  renderOverviewFiles();
+  toast('附件已云端同步');
+}
+
+
+// ==================== 3. 业务基础配置与渲染 ====================
+var PH={research:'调研',extract:'提取',design:'设计',dev:'打样',launch:'量产'};
+var PO=['research','extract','design','dev','launch'];
+var PC={research:'ph-r',extract:'ph-e',design:'ph-d',dev:'ph-v',launch:'ph-l'};
+var EMOJIS=['📁','📋','🎨','🚀','💡','🎯','📦','⭐','🌟','🔥','💎','🎪','🏆','📚','✏️','🖌️'];
+var selectedEmoji='📁';
+
+function defaultProject(id,name,icon,isDemo){
+  var p = {id:id,name:name,icon:icon||'📁',created:Date.now(),overview:'',overviewFiles:[],
+    themes:['default_theme'],
+    themeMeta:{default_theme:{label:'默认主题',color:'#666'}},
+    rows:[],versions:[],undoStack:[],redoStack:[]};
+  if(isDemo){
+    p.themes=['midautumn','biz','family','newstudent'];
+    p.themeMeta={midautumn:{label:'中秋情感',color:'#c4963a'},biz:{label:'商务礼赠',color:'#666'},family:{label:'PKU家庭',color:'#d4684a'},newstudent:{label:'新生礼包',color:'#3a9d7a'}};
+  }
+  return p;
+}
+
+function seedRows(p){
+  p.rows=[
+    {id:'r1',theme:'midautumn',name:'温感玻璃杯',category:'杯',material:'高硼硅玻璃',process:'热敏变色',phase:'design',story:'1917年蔡元培破格聘请24岁梁漱溟。',visual:'常态线描博雅塔+淡月。加热浮现暖色先贤群像。',notes:'售价68元。',img:'',conceptImg:'',ref:'',moodboard:[],elementExtract:'',designDraft:''},
+    {id:'r2',theme:'midautumn',name:'纸雕灯',category:'灯',material:'米白纸',process:'激光雕刻层叠',phase:'design',story:'1940昆明联大。闻一多刻印养家，陈寅恪失明授课。',visual:'外层博雅塔-中层水纹-内层人物。暖白LED。',notes:'层数控制在5层内。',img:'',conceptImg:'',ref:'',moodboard:[],elementExtract:'',designDraft:''},
+  ];
+  return p;
+}
+
+function tm(id){return ap.themeMeta[id]||{label:id,color:'#666'}}
+function themeSelect(r,i){return '<select onchange="changeTheme('+i+',this.value)" onclick="event.stopPropagation()" style="width:100%;padding:2px 4px;border:1px solid #dde;border-radius:3px;background:#fff;font-family:inherit;font-size:11px;color:'+tm(r.theme).color+';font-weight:600">'+ap.themes.map(function(t){return '<option value="'+t+'" '+(r.theme===t?'selected':'')+' style="color:'+tm(t).color+'">'+esc(tm(t).label)+'</option>'}).join('')+'</select>'}
+function imgCell(r,f){var v=r[f];if(v&&v.length>10)return '<div class="img-wrap"><img src="'+esc(v)+'" style="max-width:56px;max-height:34px;border-radius:3px;cursor:pointer" onclick="event.stopPropagation();showLightbox(\''+esc(v)+'\')"><div class="img-x" onclick="event.stopPropagation();deleteImg(\''+r.id+'\',\''+f+'\')">x</div></div>';return '<label class="img-add" style="cursor:pointer" onclick="event.stopPropagation()">+<input type="file" accept="image/*" onchange="uploadImg(\''+r.id+'\',\''+f+'\',this)" style="display:none"></label>'}
+
+function moodboardCell(r){
+  var mb=r.moodboard||[];
+  return '<div style="display:flex;gap:2px;flex-wrap:wrap;align-items:center">'+
+    mb.map(function(url,i){
+      return '<div class="img-wrap" style="display:inline-block"><div style="width:40px;height:28px;border-radius:2px;background-image:url('+esc(url)+');background-size:cover;background-position:center;cursor:pointer" onclick="event.stopPropagation();showLightbox(\''+esc(url)+'\')" title="点击放大"></div><div class="img-x" onclick="event.stopPropagation();removeMoodboard(\''+r.id+'\','+i+')">x</div></div>';
+    }).join('')+
+    '<label class="img-add" style="width:40px;height:28px;cursor:pointer" onclick="event.stopPropagation()">+<input type="file" accept="image/*" onchange="addMoodboard(\''+r.id+'\',this)" multiple style="display:none"></label></div>';
+}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+var TC=[
+  {cols:[
+    {id:'drag',w:24,label:'',render:function(r,i){return '<span style="cursor:grab;color:#ccc;font-size:14px;user-select:none" draggable="true" ondragstart="dragStart(event,'+i+')" ondragend="dragEnd(event)" onclick="event.stopPropagation()">⠿</span>'}},
+    {id:'cb',w:24,label:'',render:function(r,i){return '<input type="checkbox" class="row-cb" '+(sel.has(i)?'checked':'')+' onclick="event.stopPropagation();toggleRow('+i+',this.checked)">'}},
+    {id:'id',w:28,label:'#',render:function(r,i){return i+1}},
+    {id:'theme',w:90,label:'主题',render:function(r,i){return themeSelect(r,i)}},
+    {id:'name',w:130,label:'产品名',ed:true,render:function(r){return r.name||''}},
+    {id:'category',w:60,label:'品类',ed:true,render:function(r){return r.category||''}},
+    {id:'material',w:90,label:'材质',ed:true,render:function(r){return r.material||''}},
+    {id:'process',w:90,label:'工艺',ed:true,render:function(r){return r.process||''}},
+    {id:'phase',w:60,label:'阶段',render:function(r,i){return '<span class="ph '+PC[r.phase]+'" onclick="event.stopPropagation();cyclePhase('+i+')">'+PH[r.phase]+'</span>'}},
+    {id:'visual',w:150,label:'视觉方向',ed:true,render:function(r){return r.visual||''}},
+    {id:'story',w:150,label:'背景故事',ed:true,render:function(r){return r.story||''}},
+    {id:'notes',w:130,label:'约束',ed:true,render:function(r){return r.notes||''}},
+    {id:'img',w:75,label:'效果图',render:function(r){return imgCell(r,'img')}}
+  ]},
+  {cols:[
+    {id:'drag',w:24,label:'',render:function(r,i){return '<span style="cursor:grab;color:#ccc;font-size:14px;user-select:none" draggable="true" ondragstart="dragStart(event,'+i+')" ondragend="dragEnd(event)" onclick="event.stopPropagation()">⠿</span>'}},
+    {id:'cb',w:24,label:'',render:function(r,i){return '<input type="checkbox" class="row-cb" '+(sel.has(i)?'checked':'')+' onclick="event.stopPropagation();toggleRow('+i+',this.checked)">'}},
+    {id:'id',w:28,label:'#',render:function(r,i){return i+1}},
+    {id:'theme',w:90,label:'主题',render:function(r,i){return themeSelect(r,i)}},
+    {id:'name',w:130,label:'产品名',ed:true,render:function(r){return r.name||''}},
+    {id:'story',w:200,label:'历史背景/文化背书',ed:true,render:function(r){return r.story||''}},
+    {id:'visual',w:200,label:'视觉方向/插画描述',ed:true,render:function(r){return r.visual||''}},
+    {id:'moodboard',w:180,label:'基因情绪板',render:function(r){return moodboardCell(r)}},
+    {id:'elementExtract',w:120,label:'元素提取',render:function(r){return imgCell(r,'elementExtract')}},
+    {id:'designDraft',w:120,label:'设计初稿',render:function(r){return imgCell(r,'designDraft')}},
+    {id:'ref',w:75,label:'竞品参考',render:function(r){return imgCell(r,'ref')}},
+    {id:'conceptImg',w:75,label:'概念图',render:function(r){return imgCell(r,'conceptImg')}}
+  ]},
+  {cols:[
+    {id:'drag',w:24,label:'',render:function(r,i){return '<span style="cursor:grab;color:#ccc;font-size:14px;user-select:none" draggable="true" ondragstart="dragStart(event,'+i+')" ondragend="dragEnd(event)" onclick="event.stopPropagation()">⠿</span>'}},
+    {id:'cb',w:24,label:'',render:function(r,i){return '<input type="checkbox" class="row-cb" '+(sel.has(i)?'checked':'')+' onclick="event.stopPropagation();toggleRow('+i+',this.checked)">'}},
+    {id:'id',w:28,label:'#',render:function(r,i){return i+1}},
+    {id:'theme',w:90,label:'主题',render:function(r,i){return themeSelect(r,i)}},
+    {id:'name',w:130,label:'产品名',ed:true,render:function(r){return r.name||''}},
+    {id:'material',w:100,label:'材质',ed:true,render:function(r){return r.material||''}},
+    {id:'process',w:100,label:'工艺',ed:true,render:function(r){return r.process||''}},
+    {id:'specs',w:80,label:'规格',ed:true,render:function(r){return r.specs||''}},
+    {id:'notes',w:160,label:'设计约束',ed:true,render:function(r){return r.notes||''}},
+    {id:'status',w:70,label:'打样状态',ed:true,render:function(r){return r.status||'-'}},
+    {id:'supplier',w:100,label:'供应商',ed:true,render:function(r){return r.supplier||''}},
+    {id:'img',w:75,label:'效果图',render:function(r){return imgCell(r,'img')}}
+  ]}
+];
+
+function buildTable(cfg){
+  var h='',b='';
+  cfg.cols.forEach(function(c){h+='<th style="width:'+(c.w||80)+'px">'+c.label+'</th>'});
+  ap.rows.forEach(function(r,i){
+    var cls=sel.has(i)?' sel':'';
+    b+='<tr class="'+cls+'" onclick="if(!event.target.isContentEditable)toggleRow('+i+','+(!sel.has(i))+')" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="rowDrop(event,'+i+')">';
+    cfg.cols.forEach(function(c){
+      var val=c.render(r,i);
+      if(c.ed){
+        b+='<td style="width:'+(c.w||80)+'px"><div contenteditable data-placeholder="'+c.label+'" onfocus="pushUndo()" onblur="saveCell(\''+r.id+'\',\''+c.id+'\',this)" class="edit-div">'+esc(val)+'</div></td>';
+      }else{
+        b+='<td style="width:'+(c.w||80)+'px">'+val+'</td>';
+      }
+    });
+    b+='</tr>';
+  });
+  return '<table><thead><tr>'+h+'</tr></thead><tbody>'+b+'</tbody></table>';
+}
+
+function renderTables(){document.querySelectorAll('[id^=tw]').forEach(function(el,i){if(i<3){el.innerHTML=buildTable(TC[i])}})}
+
+function renderDash(){
+  var q=(document.getElementById('dashSearch').value||'').toLowerCase();
+  var ps=Object.values(store.projects).filter(function(p){return p.name.toLowerCase().indexOf(q)>=0});
+  document.getElementById('dashMain').innerHTML='<h2>共 '+ps.length+' 个云端项目</h2><div class="pgrid">'+ps.map(function(p){return '<div class="pcard" onclick="enterProject(\''+p.id+'\')"><div class="icon">'+p.icon+'</div><div class="name">'+esc(p.name)+'</div><div class="date">'+new Date(p.created).toLocaleDateString()+'</div><div class="count">'+p.rows.length+' 产品</div><div class="del" onclick="event.stopPropagation();deleteProject(\''+p.id+'\')">×</div></div>'}).join('')+'<div class="pcard add" onclick="openNewProject()"><div class="icon">+</div><div class="name">创建新项目</div></div></div>';
+}
+
+function openNewProject(){
+  document.getElementById('npName').value='';selectedEmoji='📁';
+  document.getElementById('emojiGrid').innerHTML=EMOJIS.map(function(e){return '<span onclick="pickEmoji(this,\''+e+'\')" class="'+(e===selectedEmoji?'sel':'')+'">'+e+'</span>'}).join('');
+  document.getElementById('newModal').classList.add('show');
+}
+function pickEmoji(el,emoji){selectedEmoji=emoji;document.querySelectorAll('.emoji-grid span').forEach(function(s){s.classList.remove('sel')});el.classList.add('sel')}
+function createProject(){
+  try{
+    var name=document.getElementById('npName').value.trim();
+    if(!name){alert('请输入项目名');return}
+    var id='p_'+Date.now();
+    var p=defaultProject(id,name,selectedEmoji,false);
+    store.projects[id]=p;saveStore();hideModal('newModal');renderDash();toast('云端项目已创建');
+  }catch(e){alert('创建失败: '+e.message)}
+}
+function enterProject(id){ap=store.projects[id];store.activeProject=id;sel.clear();saveStore();document.getElementById('dash').style.display='none';document.getElementById('editor').classList.add('active');renderEditor()}
+function deleteProject(id){if(!confirm('彻底删除此项目？'))return;delete store.projects[id];saveStore();renderDash()}
+function backToDash(){ap=null;store.activeProject=null;saveStore();document.getElementById('editor').classList.remove('active');document.getElementById('dash').style.display='flex';renderDash()}
+function hideModal(id){document.getElementById(id).classList.remove('show')}
+
+function renderEditor(){
+  document.getElementById('edTitle').textContent=ap.name;
+  document.getElementById('ovText').value=ap.overview||'';
+  renderOverviewFiles();
+  renderAll();
+}
+
+function renderOverviewFiles(){
+  document.getElementById('ovFiles').innerHTML=(ap.overviewFiles||[]).map(function(f,i){
+    return '<span class="fchip"><a href="'+f.data+'" target="_blank" style="text-decoration:none;color:#555" onclick="event.stopPropagation()" title="查看文件">📄 '+esc(f.name)+'</a> <span style="cursor:pointer;color:#ccc;margin-left:4px;font-size:12px;display:flex;align-items:center" onclick="removeOverviewFile('+i+')">×</span></span>'
+  }).join('');
+}
+
+function renderAll(){renderTables();renderBrief();document.getElementById('rowCount').textContent=ap.rows.length+' 产品 选中 '+sel.size}
+function renderBrief(){
+  var md='# '+ap.name+' 设计通告\n\n';if(ap.overview)md+='## 项目概述\n'+ap.overview+'\n\n';
+  var by={};ap.rows.forEach(function(r){if(!by[r.theme])by[r.theme]=[];by[r.theme].push(r)});
+  Object.entries(by).forEach(function(e){var tid=e[0],items=e[1];md+='## '+tm(tid).label+'\n\n';items.forEach(function(r){md+='### '+r.name+'\n- 品类：'+r.category+'\n- 材质：'+r.material+'\n- 工艺：'+r.process+'\n- 阶段：'+PH[r.phase]+'\n';if(r.visual)md+='- 视觉方向：'+r.visual+'\n';if(r.story)md+='- 历史背景：'+r.story+'\n';if(r.notes)md+='- 备注：'+r.notes+'\n';md+='\n'})});
+  document.getElementById('briefPrev').textContent=md;window._brief=md;
+}
+
+function pushUndo(){ap.undoStack.push(JSON.parse(JSON.stringify(ap.rows)));if(ap.undoStack.length>30)ap.undoStack.shift();ap.redoStack=[];saveStore()}
+function undo(){if(!ap.undoStack.length)return;ap.redoStack.push(JSON.parse(JSON.stringify(ap.rows)));ap.rows=ap.undoStack.pop();saveStore();renderAll();toast('撤销')}
+function redo(){if(!ap.redoStack.length)return;ap.undoStack.push(JSON.parse(JSON.stringify(ap.rows)));ap.rows=ap.redoStack.pop();saveStore();renderAll();toast('重做')}
+
+function saveCell(id,f,el){var val=el.textContent;var r=ap.rows.find(function(r){return r.id===id});if(r&&r[f]!==val){r[f]=val;saveStore();renderBrief()}}
+function toggleRow(i,v){if(v)sel.add(i);else sel.delete(i);renderTables()}
+function selectAll(){ap.rows.forEach(function(_,i){sel.add(i)});renderTables()}
+function selectNone(){sel.clear();renderTables()}
+function cyclePhase(i){pushUndo();var idx=PO.indexOf(ap.rows[i].phase);ap.rows[i].phase=PO[(idx+1)%5];saveStore();renderAll()}
+function changeTheme(i,val){pushUndo();ap.rows[i].theme=val;saveStore();renderAll()}
+
+function addRow(){pushUndo();ap.rows.push({id:'r_'+Date.now(),theme:ap.themes[0]||'',name:'',category:'',material:'',process:'',phase:'research',visual:'',story:'',notes:'',img:'',conceptImg:'',ref:'',moodboard:[],elementExtract:'',designDraft:''});saveStore();renderAll();toast('已添加')}
+function deleteSelected(){if(!sel.size){toast('先勾选');return}pushUndo();Array.from(sel).sort(function(a,b){return b-a}).forEach(function(i){ap.rows.splice(i,1)});sel.clear();saveStore();renderAll();toast('已删除')}
+function dupeSelected(){if(!sel.size){toast('先勾选');return}pushUndo();Array.from(sel).sort(function(a,b){return a-b}).forEach(function(i){var r=JSON.parse(JSON.stringify(ap.rows[i]));r.id='r_'+Date.now();ap.rows.splice(i+1,0,r)});sel.clear();saveStore();renderAll();toast('已复制')}
+
+function openProductModal(){
+  'pmName pmCat pmMat pmProc pmVis pmStory pmNotes'.split(' ').forEach(function(id){document.getElementById(id).value=''});
+  document.getElementById('pmTheme').innerHTML=ap.themes.map(function(t){return '<option value="'+t+'">'+esc(tm(t).label)+'</option>'}).join('');
+  document.getElementById('prodModal').classList.add('show');
+}
+function addProductFromModal(){pushUndo();ap.rows.push({id:'r_'+Date.now(),theme:document.getElementById('pmTheme').value,name:document.getElementById('pmName').value||'新产品',category:document.getElementById('pmCat').value,material:document.getElementById('pmMat').value,process:document.getElementById('pmProc').value,phase:'research',visual:document.getElementById('pmVis').value,story:document.getElementById('pmStory').value,notes:document.getElementById('pmNotes').value,img:'',conceptImg:'',ref:'',moodboard:[],elementExtract:'',designDraft:''});hideModal('prodModal');saveStore();renderAll();toast('已添加')}
+
+function switchTab(n){tab=n;document.querySelectorAll('.etab').forEach(function(t,i){t.classList.toggle('active',i===n)});document.querySelectorAll('.tab-c').forEach(function(el,i){el.classList.toggle('active',i===n)});if(n===3){renderBrief();document.getElementById('toolbar').style.display='none'}else{document.getElementById('toolbar').style.display='flex';renderTables()}}
+
+function renderThemeChips(){
+  document.getElementById('themeChips').innerHTML=ap.themes.map(function(t){
+    return '<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid #e8e8ec;margin:2px"><input value="'+esc(tm(t).label)+'" onchange="renameTheme(\''+t+'\',this.value)" style="border:none;background:transparent;width:60px;font-size:11px;color:'+tm(t).color+'"> <span onclick="deleteTheme(\''+t+'\')" style="cursor:pointer;color:#ccc">x</span></span>'
+  }).join('');
+}
+function manageThemes(){ renderThemeChips(); document.getElementById('themeModal').classList.add('show'); }
+function addTheme(){var n=document.getElementById('newThemeName').value.trim();if(!n)return;var id='t_'+Date.now();ap.themes.push(id);ap.themeMeta[id]={label:n,color:'#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0')};document.getElementById('newThemeName').value='';saveStore();renderAll(); renderThemeChips(); toast('已添加')}
+function renameTheme(id,name){ap.themeMeta[id].label=name;saveStore();renderAll();}
+function deleteTheme(id){if(ap.themes.length<=1){toast('至少保留一个主题');return}if(ap.rows.some(function(r){return r.theme===id})){toast('有产品正在使用该主题，无法删除');return}ap.themes=ap.themes.filter(function(t){return t!==id});delete ap.themeMeta[id];saveStore();renderAll(); renderThemeChips();} 
+
+function saveVersion(){ap.versions.push({time:new Date().toLocaleString(),rows:JSON.parse(JSON.stringify(ap.rows))});if(ap.versions.length>20)ap.versions.shift();saveStore();toast('当前版本已存档')}
+function openVersions(){document.getElementById('verList').innerHTML=ap.versions.map(function(v,i){return '<div style="display:flex;justify-content:space-between;padding:7px 10px;border-bottom:1px solid #f0f0f2;font-size:11px;cursor:pointer" onclick="restoreVersion('+i+')"><span>版本'+(i+1)+' (点击恢复)</span><small style="color:#aaa">'+v.time+'</small></div>'}).reverse().join('')||'<div style="padding:16px;text-align:center;color:#bbb">暂无</div>';document.getElementById('verModal').classList.add('show')}
+function restoreVersion(i){if(!confirm('恢复这个版本？'))return;pushUndo();ap.rows=JSON.parse(JSON.stringify(ap.versions[i].rows));hideModal('verModal');saveStore();renderAll();toast('已恢复')}
+
+function saveOverview(){ap.overview=document.getElementById('ovText').value;saveStore()}
+function removeOverviewFile(i){ap.overviewFiles.splice(i,1);saveStore();renderOverviewFiles()}
+
+function deleteImg(id,f){if(!confirm('删除这张图吗？'))return;var r=ap.rows.find(function(r){return r.id===id});if(r){r[f]=''};saveStore();renderTables()}
+function removeMoodboard(id,idx){if(!confirm('删除情绪板图片吗？'))return;var r=ap.rows.find(function(r){return r.id===id});if(r&&r.moodboard)r.moodboard.splice(idx,1);saveStore();renderTables()}
+function showLightbox(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('show')}
+
+function dragStart(e,i){e.dataTransfer.setData('text/plain',i);e.dataTransfer.effectAllowed='move';var tr=e.target.closest('tr');if(tr)tr.style.opacity='0.4'}
+function dragEnd(e){var tr=e.target.closest('tr');if(tr)tr.style.opacity='1'}
+function dragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move'}
+function dragLeave(e){var tr=e.target.closest('tr');if(tr)tr.style.background=''}
+function rowDrop(e,i){e.preventDefault();var tr=e.target.closest('tr');if(tr)tr.style.background='';var from=parseInt(e.dataTransfer.getData('text/plain'));if(isNaN(from)||from===i)return;pushUndo();var row=ap.rows.splice(from,1)[0];ap.rows.splice(i,0,row);saveStore();renderAll()}
+
+function exportPDF(){window.print()}
+function copyBrief(){navigator.clipboard.writeText(window._brief);toast('已复制')}
+function downloadBrief(){var blob=new Blob([window._brief||''],{type:'text/markdown'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=ap.name+'.md';a.click()}
+function toast(m){var t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(function(){t.remove()},2000)}
+
+document.addEventListener('keydown',function(e){if(!e.target.isContentEditable&&(e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}if(!e.target.isContentEditable&&(e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo()}});
+
+// ==================== 4. 启动与拉取云端数据 ====================
+async function bootstrapApp(){
+  try {
+    const { data } = _supabase.storage.from(BUCKET_NAME).getPublicUrl(STORE_FILE);
+    // 使用时间戳防止浏览器缓存陈旧数据
+    const res = await fetch(data.publicUrl + '?t=' + Date.now());
+    
+    if(res.ok) {
+      const loadedData = await res.json();
+      if(loadedData && loadedData.projects) {
+        store = loadedData;
+      }
+    } else {
+      // 如果云端没有找到配置文件（第一次运行），生成默认测试数据并推送上云
+      var demoId='demo1';
+      var p=defaultProject(demoId,'第4波段 · 北大文创 (云端测试)','☁️',true);
+      seedRows(p);
+      store.projects[demoId]=p;
+      await saveStore();
+    }
+  } catch(err) {
+    console.error("加载云端数据失败: ", err);
+    toast('无法连接到云端数据库，请检查网络');
+  }
+  
+  // 隐藏加载动画，展示界面
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dash').style.display='flex';
+  renderDash();
+}
+
+// 启动！
+bootstrapApp();
+</script>
+</body>
+</html>
