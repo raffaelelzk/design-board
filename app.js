@@ -352,6 +352,15 @@
   }
 
   async function persistStore() {
+    const toSave = JSON.parse(JSON.stringify(store));
+    if (storageMode === "indexeddb" && database) {
+      idbPut(APP_KEY, toSave).catch(() => {});
+    }
+    localStoragePut(APP_KEY, toSave);
+    if (supabase) cloudSave(toSave);
+  }
+
+  function _old_persistStore {
     if (isReadOnly || !pendingSave || saveInProgress) return;
     if (!storageAvailable) {
       setSaveStatus("本地保存不可用，请导出备份", "error");
@@ -1533,7 +1542,9 @@
     });
   }
 
-  function revealApp() {
+  window.revealAppFallback=window.setTimeout(function(){var l=document.getElementById("loading"),d=document.getElementById("dashboard");if(l)l.hidden=true;if(d)d.hidden=false},8000);
+
+function revealApp() {
     if (appRevealed) return;
     appRevealed = true;
     const loading = $("#loading");
@@ -1543,7 +1554,43 @@
     renderDashboard();
   }
 
-  async function bootstrap() {
+  (function(){setTimeout(function(){if(typeof revealApp==="function"&&!appRevealed)revealApp()},6000)})();
+
+
+  const SUPABASE_URL = "https://rvklyahwvczxtpqxdnpl.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj";
+  const BUCKET_NAME = "design-images";
+  const STORE_FILE = "system_store.json";
+  let supabase = null;
+
+  function initSupabase() {
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {db:{schema:"public"}});
+      return true;
+    } catch(e) { console.warn("Supabase init failed", e); return false; }
+  }
+
+  async function cloudLoad() {
+    if (!supabase) return null;
+    try {
+      const {data} = supabase.storage.from(BUCKET_NAME).getPublicUrl(STORE_FILE);
+      const res = await fetch(data.publicUrl + "?t=" + Date.now());
+      if (!res.ok) return null;
+      return await res.json();
+    } catch(e) { console.warn("Cloud load failed", e); return null; }
+  }
+
+  async function cloudSave(data) {
+    if (!supabase) return;
+    try {
+      const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+      const {error} = await supabase.storage.from(BUCKET_NAME).upload(STORE_FILE, blob, {upsert:true, cacheControl:"0"});
+      if (error) console.warn("Cloud save failed", error);
+    } catch(e) { console.warn("Cloud save error", e); }
+  }
+
+
+async function bootstrap() {
     try {
       bindEvents();
     } catch (error) {
@@ -1562,6 +1609,7 @@
       store = normalizeStore(fallback || store);
       revealApp();
       toast("已使用浏览器备用存储打开项目", "info");
+      initSupabase();
     }, 3500);
 
     try {
@@ -1578,6 +1626,15 @@
     } finally {
       window.clearTimeout(failSafeTimer);
       revealApp();
+      initSupabase();
+      if (supabase) {
+        const cloud = await cloudLoad();
+        if (cloud && cloud.projects) {
+          store = normalizeStore(cloud);
+          persistStore();
+          toast("已从云端同步", "success");
+        }
+      }
     }
   }
 
