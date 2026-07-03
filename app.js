@@ -32,6 +32,8 @@
   let saveInProgress = false;
   let pendingSave = false;
   let storageAvailable = true;
+  let storageMode = "indexeddb";
+  let appRevealed = false;
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -244,37 +246,89 @@
     return normalized;
   }
 
+  function withTimeout(promise, milliseconds, message) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error(message)), milliseconds);
+      })
+    ]);
+  }
+
   function openDatabase() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      if (!("indexedDB" in window)) {
+        reject(new Error("当前浏览器不支持 IndexedDB"));
+        return;
+      }
+
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        callback(value);
+      };
+
+      let request;
+      try {
+        request = indexedDB.open(DB_NAME, DB_VERSION);
+      } catch (error) {
+        finish(reject, error);
+        return;
+      }
+
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains(OBJECT_STORE)) {
           db.createObjectStore(OBJECT_STORE, { keyPath: "key" });
         }
       };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onsuccess = () => finish(resolve, request.result);
+      request.onerror = () => finish(reject, request.error || new Error("无法打开本地数据库"));
+      request.onblocked = () => finish(reject, new Error("本地数据库被其他页面阻塞"));
     });
   }
 
   function idbGet(key) {
     return new Promise((resolve, reject) => {
-      const transaction = database.transaction(OBJECT_STORE, "readonly");
-      const request = transaction.objectStore(OBJECT_STORE).get(key);
-      request.onsuccess = () => resolve(request.result?.value);
-      request.onerror = () => reject(request.error);
+      try {
+        const transaction = database.transaction(OBJECT_STORE, "readonly");
+        const request = transaction.objectStore(OBJECT_STORE).get(key);
+        request.onsuccess = () => resolve(request.result?.value);
+        request.onerror = () => reject(request.error || new Error("读取本地数据库失败"));
+        transaction.onabort = () => reject(transaction.error || new Error("读取本地数据库已中止"));
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
   function idbPut(key, value) {
     return new Promise((resolve, reject) => {
-      const transaction = database.transaction(OBJECT_STORE, "readwrite");
-      transaction.objectStore(OBJECT_STORE).put({ key, value });
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-      transaction.onabort = () => reject(transaction.error || new Error("保存已中止"));
+      try {
+        const transaction = database.transaction(OBJECT_STORE, "readwrite");
+        transaction.objectStore(OBJECT_STORE).put({ key, value });
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error("保存本地数据库失败"));
+        transaction.onabort = () => reject(transaction.error || new Error("保存已中止"));
+      } catch (error) {
+        reject(error);
+      }
     });
+  }
+
+  function localStorageGet(key) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      console.warn("localStorage 读取失败", error);
+      return null;
+    }
+  }
+
+  function localStoragePut(key, value) {
+    window.localStorage.setItem(key, JSON.stringify(value));
   }
 
   function setSaveStatus(message, state = "") {
@@ -285,9 +339,9 @@
 
   function queueSave() {
     if (isReadOnly || !activeProject) return;
-    if (!storageAvailable || !database) {
+    if (!storageAvailable) {
       pendingSave = true;
-      setSaveStatus("本地数据库不可用，请导出备份", "error");
+      setSaveStatus("本地保存不可用，请导出备份", "error");
       return;
     }
     activeProject.updatedAt = Date.now();
@@ -299,8 +353,8 @@
 
   async function persistStore() {
     if (isReadOnly || !pendingSave || saveInProgress) return;
-    if (!storageAvailable || !database) {
-      setSaveStatus("本地数据库不可用，请导出备份", "error");
+    if (!storageAvailable) {
+      setSaveStatus("本地保存不可用，请导出备份", "error");
       return;
     }
     saveInProgress = true;
@@ -311,8 +365,13 @@
         project.undoStack = (project.undoStack || []).slice(-25);
         project.redoStack = (project.redoStack || []).slice(-25);
       });
-      await idbPut(APP_KEY, store);
-      setSaveStatus(`已保存到本机 · ${new Date().toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })}`, "saved");
+      if (storageMode === "indexeddb" && database) {
+        await withTimeout(idbPut(APP_KEY, store), 2500, "本地数据库保存超时");
+      } else {
+        localStoragePut(APP_KEY, store);
+      }
+      const storageLabel = storageMode === "indexeddb" ? "本机" : "浏览器";
+      setSaveStatus(`已保存到${storageLabel} · ${new Date().toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })}`, "saved");
     } catch (error) {
       console.error(error);
       pendingSave = true;
@@ -1474,21 +1533,66 @@
     });
   }
 
-  async function bootstrap() {
-    bindEvents();
-    try {
-      database = await openDatabase();
-      const loaded = await idbGet(APP_KEY);
-      store = normalizeStore(loaded || store);
-    } catch (error) {
-      console.error(error);
-      storageAvailable = false;
-      toast("无法打开本地数据库，建议使用最新版 Chrome、Edge 或 Safari", "error");
-    }
-    $("#loading").hidden = true;
-    $("#dashboard").hidden = false;
+  function revealApp() {
+    if (appRevealed) return;
+    appRevealed = true;
+    const loading = $("#loading");
+    const dashboard = $("#dashboard");
+    if (loading) loading.hidden = true;
+    if (dashboard) dashboard.hidden = false;
     renderDashboard();
   }
 
-  bootstrap();
+  async function bootstrap() {
+    try {
+      bindEvents();
+    } catch (error) {
+      console.error("界面初始化失败", error);
+      revealApp();
+      toast("部分界面功能初始化失败，请刷新页面重试", "error");
+      return;
+    }
+
+    const failSafeTimer = window.setTimeout(() => {
+      if (appRevealed) return;
+      console.warn("启动超时，切换到浏览器备用存储");
+      storageMode = "localstorage";
+      database = null;
+      const fallback = localStorageGet(APP_KEY);
+      store = normalizeStore(fallback || store);
+      revealApp();
+      toast("已使用浏览器备用存储打开项目", "info");
+    }, 3500);
+
+    try {
+      database = await withTimeout(openDatabase(), 2200, "打开本地数据库超时");
+      const loaded = await withTimeout(idbGet(APP_KEY), 1800, "读取本地数据库超时");
+      storageMode = "indexeddb";
+      store = normalizeStore(loaded || store);
+    } catch (error) {
+      console.warn("IndexedDB 不可用，已自动降级", error);
+      storageMode = "localstorage";
+      database = null;
+      const fallback = localStorageGet(APP_KEY);
+      store = normalizeStore(fallback || store);
+    } finally {
+      window.clearTimeout(failSafeTimer);
+      revealApp();
+    }
+  }
+
+  window.addEventListener("error", event => {
+    console.error("Design Board runtime error", event.error || event.message);
+    revealApp();
+  });
+
+  window.addEventListener("unhandledrejection", event => {
+    console.error("Design Board unhandled rejection", event.reason);
+    revealApp();
+  });
+
+  bootstrap().catch(error => {
+    console.error("Design Board 启动失败", error);
+    revealApp();
+  });
 })();
