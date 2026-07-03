@@ -84,3 +84,8 @@ http://localhost:8000
 - `app.js`：Design Board 功能与本地数据逻辑
 
 部署到 GitHub Pages 后，首页会先展示工具箱，点击 **Design Board** 卡片进入项目工作台。
+
+## Loading compatibility
+
+`design-board.html` contains its runtime script inline. If IndexedDB is blocked,
+the app automatically falls back to browser localStorage and still opens normally.
