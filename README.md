@@ -1,4 +1,4 @@
-# Design Board v2
+# Creative Toolbox / Design Board
 
 面向文创产品策划的本地优先项目工作台。测试阶段不需要登录，不依赖 Supabase，适合直接部署到 GitHub Pages。
 
@@ -73,3 +73,14 @@ http://localhost:8000
 4. 团队成员和权限
 5. 冲突检测与多人协作
 6. 正式的账号注销、隐私政策和数据导出机制
+
+
+## 页面入口
+
+- `index.html`：Creative Toolbox 工具箱主页
+- `design-board.html`：Design Board 项目工作台
+- `home.css`：工具箱主页样式
+- `styles.css`：Design Board 样式
+- `app.js`：Design Board 功能与本地数据逻辑
+
+部署到 GitHub Pages 后，首页会先展示工具箱，点击 **Design Board** 卡片进入项目工作台。
