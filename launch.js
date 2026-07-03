@@ -2,6 +2,48 @@
   "use strict";
 
   const STORAGE_KEY = "creative-toolbox-launch-checklist-v1";
+  /* === cloud sync === */
+  const SUPABASE_URL = "https://rvklyahwvczxtpqxdnpl.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj";
+  const BUCKET_NAME = "design-images";
+  let supabase = null;
+
+  function initSupabase() {
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        db: { schema: "public" }
+      });
+    } catch (e) {
+      console.warn("Supabase init failed", e);
+    }
+  }
+
+  async function cloudLoad(fileName) {
+    if (!supabase) return null;
+    try {
+      const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+      const res = await fetch(data.publicUrl + "?t=" + Date.now());
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      console.warn("Cloud load failed", e);
+      return null;
+    }
+  }
+
+  async function cloudSave(fileName, data) {
+    if (!supabase) return;
+    try {
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      await supabase.storage.from(BUCKET_NAME).upload(fileName, blob, {
+        upsert: true,
+        cacheControl: "0"
+      });
+    } catch (e) {
+      console.warn("Cloud save error", e);
+    }
+  }
+
   const STATUS_LABELS = {
     data: "资料整理中",
     sampling: "等待打样",
@@ -163,6 +205,7 @@
     const persist = () => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        cloudSave("launch-checklist-store.json", state);
         status.textContent = `已保存 · ${new Date().toLocaleTimeString("zh-CN", {
           hour: "2-digit",
           minute: "2-digit",
@@ -1156,6 +1199,13 @@
     window.addEventListener("afterprint", removePrintReport);
   }
 
+  initSupabase();
+  cloudLoad("launch-checklist-store.json").then(cloud => {
+    if (cloud && cloud.version && (!state.version || cloud.version >= state.version)) {
+      state = cloud;
+      saveState(true);
+    }
+  });
   bindEvents();
   if (state.activeProjectId && currentProject()) showWorkspace();
   else renderDashboard();
