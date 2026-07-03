@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1.1 — Loading hotfix
+
+- Fixed an infinite loading screen when IndexedDB is blocked or slow.
+- Added a 3.5-second startup fail-safe.
+- Added automatic fallback to localStorage.
+- Embedded the runtime script into `design-board.html` to avoid a missing `app.js` request.
+- Added cache busting to the homepage Design Board link.
+
 ## 2.0.0
 
 ### Added
