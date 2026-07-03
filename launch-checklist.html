@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="产品生产资料与交付检查工具。">
+  <title>Launch Checklist · Creative Toolbox</title>
+  <link rel="stylesheet" href="launch.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="返回 Creative Toolbox">
+        <span class="brand-mark">▦</span>
+        <span>Creative Toolbox</span>
+      </a>
+      <div class="topbar-actions">
+        <span id="saveStatus" class="save-status">准备就绪</span>
+        <a class="ghost-link" href="index.html">返回工具箱</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell page">
+    <section id="dashboardView">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">LAUNCH CHECKLIST</p>
+          <h1>产品交付清单</h1>
+          <p>集中整理产品资料、规格和交付节点，并自动发现缺失信息与风险。</p>
+        </div>
+        <div class="heading-actions">
+          <button id="importProjectButton" class="button secondary" type="button">导入 JSON</button>
+          <button id="openCreateProjectButton" class="button primary" type="button">新建清单</button>
+        </div>
+      </div>
+
+      <section class="summary-strip" aria-label="清单概览">
+        <div><strong id="dashboardProjectCount">0</strong><span>交付清单</span></div>
+        <div><strong id="dashboardProductCount">0</strong><span>全部产品</span></div>
+        <div><strong id="dashboardRiskCount">0</strong><span>风险提醒</span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>我的清单</h2>
+            <p>内容保存在当前浏览器，不会自动上传服务器。</p>
+          </div>
+          <input id="dashboardSearchInput" class="search-input" type="search" placeholder="搜索清单">
+        </div>
+
+        <div id="emptyDashboard" class="empty-state">
+          <div class="empty-icon">✓</div>
+          <h3>还没有产品交付清单</h3>
+          <p>创建一个清单，再逐项补充产品效果图、规格和交付信息。</p>
+          <button class="button primary" type="button" data-action="open-create-project">新建清单</button>
+        </div>
+
+        <div id="projectGrid" class="project-grid" hidden></div>
+      </section>
+    </section>
+
+    <section id="workspaceView" hidden>
+      <div class="workspace-heading">
+        <div class="workspace-title">
+          <button id="backToDashboardButton" class="icon-button" type="button" aria-label="返回全部清单">←</button>
+          <div>
+            <p class="eyebrow">LAUNCH CHECKLIST</p>
+            <input id="projectNameInput" class="project-name-input" type="text" aria-label="清单名称">
+            <p id="projectMeta" class="project-meta"></p>
+          </div>
+        </div>
+        <div class="heading-actions">
+          <button id="duplicateProjectButton" class="button secondary" type="button">复制</button>
+          <button id="exportMenuButton" class="button secondary" type="button">导出</button>
+          <button id="addProductButton" class="button primary" type="button">新增产品</button>
+        </div>
+      </div>
+
+      <section class="summary-strip workspace-summary" aria-label="产品交付概览">
+        <div><strong id="summaryAll">0</strong><span>全部产品</span></div>
+        <div><strong id="summaryComplete">0</strong><span>资料完整</span></div>
+        <div><strong id="summaryPending">0</strong><span>待确认</span></div>
+        <div><strong id="summaryRisk">0</strong><span>有风险</span></div>
+      </section>
+
+      <section id="riskBanner" class="risk-banner" hidden>
+        <div>
+          <strong id="riskBannerTitle"></strong>
+          <p id="riskBannerText"></p>
+        </div>
+        <button id="showRiskProductsButton" class="text-button" type="button">只看风险产品</button>
+      </section>
+
+      <section class="toolbar panel">
+        <div class="toolbar-filters">
+          <input id="productSearchInput" class="search-input" type="search" placeholder="搜索编号或产品名称">
+          <select id="statusFilter">
+            <option value="">全部状态</option>
+            <option value="data">资料整理中</option>
+            <option value="sampling">等待打样</option>
+            <option value="sample-confirmation">产前样确认</option>
+            <option value="production">生产中</option>
+            <option value="warehouse">待入库</option>
+            <option value="completed">已完成</option>
+            <option value="at-risk">有风险</option>
+          </select>
+        </div>
+        <div class="toolbar-meta">
+          <span id="filterResultText">0 个产品</span>
+        </div>
+      </section>
+
+      <section class="product-panel panel">
+        <div id="productTableWrap" class="table-wrap">
+          <table class="product-table">
+            <thead>
+              <tr>
+                <th>效果图</th>
+                <th>编号 / 产品名称</th>
+                <th>状态</th>
+                <th>大货到店</th>
+                <th>资料完成度</th>
+                <th>风险</th>
+                <th aria-label="操作"></th>
+              </tr>
+            </thead>
+            <tbody id="productTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="emptyProducts" class="empty-state compact-empty" hidden>
+          <div class="empty-icon">＋</div>
+          <h3>清单中还没有产品</h3>
+          <p>新增第一个产品，开始整理生产资料。</p>
+          <button class="button primary" type="button" data-action="add-product">新增产品</button>
+        </div>
+
+        <div id="emptyFilter" class="empty-state compact-empty" hidden>
+          <div class="empty-icon">⌕</div>
+          <h3>没有符合条件的产品</h3>
+          <p>调整搜索内容或状态筛选后再试。</p>
+          <button id="clearFilterButton" class="button secondary" type="button">清除筛选</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <input id="importFileInput" type="file" accept="application/json,.json" hidden>
+
+  <div id="createProjectModal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="createProjectTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">NEW CHECKLIST</p>
+          <h2 id="createProjectTitle">新建交付清单</h2>
+          <p>一个清单可以管理同一项目或同一批次的多个产品。</p>
+        </div>
+        <button class="close-button" type="button" data-action="close-create-project" aria-label="关闭">×</button>
+      </div>
+      <div class="form-grid">
+        <label class="field field-wide">
+          <span>清单名称</span>
+          <input id="createProjectNameInput" type="text" placeholder="例如：秋季文创新品交付">
+        </label>
+        <label class="field field-wide">
+          <span>说明（选填）</span>
+          <textarea id="createProjectDescriptionInput" rows="3" placeholder="例如：记录本批产品从产前样确认到大货到店的资料"></textarea>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-action="close-create-project">取消</button>
+        <button id="createProjectConfirmButton" class="button primary" type="button">创建清单</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="productModal" class="modal-backdrop product-modal-backdrop" hidden>
+    <section class="modal product-modal" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <div class="modal-heading sticky-modal-heading">
+        <div>
+          <p class="eyebrow">PRODUCT RECORD</p>
+          <h2 id="productModalTitle">新增产品</h2>
+          <p id="productCompletionText">填写产品资料后将自动计算完整度。</p>
+        </div>
+        <button class="close-button" type="button" data-action="close-product" aria-label="关闭">×</button>
+      </div>
+
+      <form id="productForm">
+        <input id="productIdInput" type="hidden">
+
+        <section class="form-section">
+          <div class="form-section-title">
+            <span>01</span>
+            <div><h3>基础资料</h3><p>用于主列表识别产品和当前进度。</p></div>
+          </div>
+
+          <div class="image-and-fields">
+            <div class="image-upload">
+              <button id="imagePreviewButton" class="image-preview" type="button">
+                <img id="productImagePreview" alt="产品效果图预览" hidden>
+                <span id="imagePlaceholder"><b>＋</b>上传高清效果图<small>自动压缩并保存在本机</small></span>
+              </button>
+              <input id="productImageInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+              <button id="removeImageButton" class="text-danger-button" type="button" hidden>移除图片</button>
+            </div>
+
+            <div class="form-grid grow">
+              <label class="field">
+                <span>编号</span>
+                <input id="productNumberInput" type="text" placeholder="例如：A-001">
+              </label>
+              <label class="field">
+                <span>产品名称</span>
+                <input id="productNameInput" type="text" placeholder="例如：校园主题卫衣" required>
+              </label>
+              <label class="field">
+                <span>当前状态</span>
+                <select id="productStatusInput">
+                  <option value="data">资料整理中</option>
+                  <option value="sampling">等待打样</option>
+                  <option value="sample-confirmation">产前样确认</option>
+                  <option value="production">生产中</option>
+                  <option value="warehouse">待入库</option>
+                  <option value="completed">已完成</option>
+                  <option value="at-risk">有风险</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>大货到店日期</span>
+                <input id="arrivalDateInput" type="date">
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-title">
+            <span>02</span>
+            <div><h3>规格资料</h3><p>记录产品尺寸、材料以及尺码数量。</p></div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field field-wide">
+              <span>尺寸与规格</span>
+              <textarea id="dimensionsInput" rows="2" placeholder="例如：衣长、胸围、克重、包装尺寸等"></textarea>
+            </label>
+            <label class="field field-wide">
+              <span>面料 / 材料</span>
+              <textarea id="materialInput" rows="2" placeholder="例如：320g 精梳棉，罗纹领口"></textarea>
+            </label>
+            <label class="field">
+              <span>样衣尺码</span>
+              <input id="sampleSizeInput" type="text" placeholder="例如：M / 165">
+            </label>
+            <label class="field">
+              <span>起订量</span>
+              <input id="moqInput" type="number" min="0" step="1" placeholder="0">
+            </label>
+          </div>
+
+          <div class="size-matrix-wrap">
+            <table class="size-matrix">
+              <thead>
+                <tr>
+                  <th>尺码</th>
+                  <th>XS / 155</th>
+                  <th>S / 160</th>
+                  <th>M / 165</th>
+                  <th>L / 170</th>
+                  <th>XL / 175</th>
+                  <th>XXL / 180</th>
+                  <th>合计</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>数量</th>
+                  <td><input id="sizeXsInput" type="number" min="0" step="1" value="0" aria-label="XS / 155 数量"></td>
+                  <td><input id="sizeSInput" type="number" min="0" step="1" value="0" aria-label="S / 160 数量"></td>
+                  <td><input id="sizeMInput" type="number" min="0" step="1" value="0" aria-label="M / 165 数量"></td>
+                  <td><input id="sizeLInput" type="number" min="0" step="1" value="0" aria-label="L / 170 数量"></td>
+                  <td><input id="sizeXlInput" type="number" min="0" step="1" value="0" aria-label="XL / 175 数量"></td>
+                  <td><input id="sizeXxlInput" type="number" min="0" step="1" value="0" aria-label="XXL / 180 数量"></td>
+                  <td><strong id="sizeTotalOutput">0</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p id="moqHint" class="field-hint"></p>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-title">
+            <span>03</span>
+            <div><h3>设计与样品</h3><p>保存设计说明和产前样确认信息。</p></div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field field-wide">
+              <span>设计思路及元素介绍</span>
+              <textarea id="designConceptInput" rows="4" placeholder="介绍设计主题、元素来源、视觉语言和使用场景"></textarea>
+            </label>
+            <label class="field field-wide">
+              <span>产前样备注</span>
+              <textarea id="preProductionNotesInput" rows="4" placeholder="记录颜色、尺寸、工艺、包装等需要调整或确认的内容"></textarea>
+            </label>
+          </div>
+
+          <div class="confirmation-grid">
+            <label class="check-card">
+              <input id="sampleConfirmedInput" type="checkbox">
+              <span><b>产前样已确认</b><small>颜色、规格和工艺已经确认</small></span>
+            </label>
+            <label class="check-card">
+              <input id="filesReadyInput" type="checkbox">
+              <span><b>生产文件已齐全</b><small>源文件、工艺说明和必要标注已准备</small></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-title">
+            <span>04</span>
+            <div><h3>生产与交付</h3><p>记录供应信息和补货周期。</p></div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>合作供应商</span>
+              <input id="supplierInput" type="text" placeholder="供应商简称">
+            </label>
+            <label class="field">
+              <span>补货周期</span>
+              <input id="replenishmentCycleInput" type="text" placeholder="例如：确认后 25 天">
+            </label>
+            <label class="field field-wide">
+              <span>最终确认人（选填）</span>
+              <input id="finalApproverInput" type="text" placeholder="姓名或角色">
+            </label>
+          </div>
+
+          <details class="private-details">
+            <summary>
+              <span><b>私密字段</b><small>默认折叠，不在主列表、打印和普通导出中显示</small></span>
+              <span aria-hidden="true">＋</span>
+            </summary>
+            <div class="private-details-content">
+              <label class="field">
+                <span>成本报价</span>
+                <input id="privateCostQuoteInput" type="text" placeholder="仅保存在当前浏览器">
+              </label>
+              <p>该字段只有在导出时主动勾选“包含私密报价”才会进入文件。</p>
+            </div>
+          </details>
+        </section>
+
+        <section id="productRiskSection" class="form-section risk-form-section" hidden>
+          <div class="form-section-title">
+            <span>!</span>
+            <div><h3>当前提醒</h3><p>保存产品后仍可继续补充。</p></div>
+          </div>
+          <div id="productRiskList" class="product-risk-list"></div>
+        </section>
+
+        <div class="modal-actions sticky-modal-actions">
+          <button id="deleteProductButton" class="button danger" type="button" hidden>删除产品</button>
+          <span class="action-spacer"></span>
+          <button class="button secondary" type="button" data-action="close-product">取消</button>
+          <button class="button primary" type="submit">保存产品</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div id="exportMenu" class="popover export-popover" hidden>
+    <label class="export-private-toggle">
+      <input id="includePrivateExportInput" type="checkbox">
+      <span><b>包含私密报价</b><small>仅在你主动选择时导出</small></span>
+    </label>
+    <div class="popover-divider"></div>
+    <button type="button" data-export="json">导出 JSON 备份</button>
+    <button type="button" data-export="csv">导出 CSV 清单</button>
+    <button type="button" data-export="print">打印 / 保存 PDF</button>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="launch.js"></script>
+</body>
+</html>
