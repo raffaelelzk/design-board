@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.2.0 — Timeline Planner
+
+- Added Timeline Planner as the second Creative Toolbox tool.
+- Added schedule templates for cultural products, brand design, events, and blank projects.
+- Added task list and horizontal timeline views.
+- Added automatic risk detection for overdue dates, missing owners, invalid dates, and incomplete dependencies.
+- Added local multi-project storage, JSON import/export, CSV export, and print/PDF output.
+- Updated the homepage tool count and added the Timeline Planner card.
+
 ## v2.1.1 — Loading hotfix
 
 - Fixed an infinite loading screen when IndexedDB is blocked or slow.
