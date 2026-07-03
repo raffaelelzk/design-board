@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.3.0 — Launch Checklist
+
+- Added Launch Checklist as the third Creative Toolbox tool.
+- Added independent multi-project product delivery checklists.
+- Added product image compression and browser-local image storage.
+- Added production status, supplier, MOQ, arrival date, dimensions, material, design notes, and sample notes.
+- Added XS/155 through XXL/180 quantity matrix with automatic totals.
+- Added automatic completeness scoring and delivery risk checks.
+- Added a collapsed private cost quote field excluded from normal exports by default.
+- Added JSON import/export, CSV export, and print/PDF reports.
+- Preserved hidden `externalRefs` compatibility fields without visible tool linking.
+- Updated the homepage tool count to three.
+
 ## v2.2.0 — Timeline Planner
 
 - Added Timeline Planner as the second Creative Toolbox tool.
