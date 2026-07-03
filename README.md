@@ -103,3 +103,22 @@ The toolbox now includes a lightweight project scheduling tool:
 - Browser localStorage persistence without login
 
 Open `timeline-planner.html` directly, or enter it from the homepage.
+
+## Launch Checklist
+
+The toolbox now includes an independent product production and delivery checklist:
+
+- Multiple local checklist projects
+- Product number, image, product name, status, supplier, MOQ, arrival date, dimensions, and material
+- Design concept and pre-production sample notes
+- Apparel size quantity matrix from XS/155 to XXL/180
+- Automatic total quantity and MOQ validation
+- Pre-production sample and production-file confirmation
+- Completion percentage and automatic delivery risk detection
+- Private cost quote field, collapsed by default
+- Private cost quote excluded from normal views and exports unless explicitly selected
+- JSON import/export, CSV export, and print/PDF
+- Independent localStorage namespace with hidden `externalRefs` compatibility fields
+- No visible cross-tool synchronization
+
+Open `launch-checklist.html` directly, or enter it from the homepage.
