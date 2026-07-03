@@ -47,6 +47,19 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .file-button{display:inline-flex;align-items:center;justify-content:center}
 .danger-text{color:var(--danger)!important}
 
+
+.toolbox-back-link{
+  display:inline-flex;
+  align-items:center;
+  margin-bottom:12px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+}
+.toolbox-back-link:hover{color:var(--text)}
+.toolbox-back-link:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+
 .dashboard{max-width:1320px;margin:0 auto;padding:42px 42px 80px}
 .dashboard-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:26px}
 .dashboard-header h1{margin:0;font-size:32px;line-height:1.05;letter-spacing:-.03em}
