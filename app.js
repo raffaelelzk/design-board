@@ -386,9 +386,6 @@
   }
 
   function renderDashboard() {
-    const demoGrid = $("#demoProjectGrid");
-    demoGrid.innerHTML = projectCardHtml(DEMO_PROJECT, { demo: true });
-
     const query = $("#projectSearch").value.trim().toLowerCase();
     const projects = Object.values(store.projects)
       .filter(project => project.name.toLowerCase().includes(query))
@@ -403,7 +400,7 @@
     const emptyState = $("#emptyProjects");
     emptyState.hidden = projects.length !== 0;
     $("h3", emptyState).textContent = query ? "没有匹配的项目" : "还没有本地项目";
-    $("p", emptyState).textContent = query ? "换一个关键词试试。" : "可以新建空白项目，或先打开示例再复制。";
+    $("p", emptyState).textContent = query ? "换一个关键词试试。" : "新建一个项目，从产品地图开始整理。";
     $("#emptyNewProjectButton").hidden = Boolean(query);
   }
 
@@ -1369,10 +1366,8 @@
     $("#projectSearch").addEventListener("input", renderDashboard);
     $("#exportAllButton").addEventListener("click", exportAllProjects);
     $("#importFile").addEventListener("change", event => importBackup(event.target.files[0]));
-    $("#demoProjectGrid").addEventListener("click", handleProjectGridAction);
     $("#projectGrid").addEventListener("click", handleProjectGridAction);
     $("#projectGrid").addEventListener("keydown", event => { if (["Enter", " "].includes(event.key)) handleProjectGridAction(event); });
-    $("#demoProjectGrid").addEventListener("keydown", event => { if (["Enter", " "].includes(event.key)) handleProjectGridAction(event); });
 
     $("#emojiGrid").addEventListener("click", event => {
       const button = event.target.closest("[data-emoji]");
