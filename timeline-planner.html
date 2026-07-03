@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="轻量项目排期、任务节点与风险提醒工具。">
+  <title>Timeline Planner · Creative Toolbox</title>
+  <link rel="stylesheet" href="timeline.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <a class="brand" href="index.html" aria-label="返回 Creative Toolbox">
+        <span class="brand-mark">▦</span>
+        <span>Creative Toolbox</span>
+      </a>
+      <div class="topbar-actions">
+        <span id="saveStatus" class="save-status">准备就绪</span>
+        <a class="ghost-link" href="index.html">返回工具箱</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell page">
+    <section id="dashboardView">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">TIMELINE PLANNER</p>
+          <h1>项目排期器</h1>
+          <p>把任务、负责人和关键日期放在一条清晰的时间线上。</p>
+        </div>
+        <div class="heading-actions">
+          <button id="importProjectButton" class="button secondary" type="button">导入 JSON</button>
+          <button id="openCreateButton" class="button primary" type="button">新建排期</button>
+        </div>
+      </div>
+
+      <section class="summary-strip" aria-label="排期概览">
+        <div><strong id="summaryProjects">0</strong><span>排期项目</span></div>
+        <div><strong id="summaryTasks">0</strong><span>全部任务</span></div>
+        <div><strong id="summaryRisks">0</strong><span>风险提醒</span></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>我的排期</h2>
+            <p>项目数据仅保存在当前浏览器。</p>
+          </div>
+          <input id="projectSearchInput" class="search-input" type="search" placeholder="搜索排期">
+        </div>
+
+        <div id="emptyDashboard" class="empty-state">
+          <div class="empty-icon">⌁</div>
+          <h3>还没有排期</h3>
+          <p>从常用模板开始，几分钟内建立第一条项目时间线。</p>
+          <button class="button primary" type="button" data-action="open-create">新建排期</button>
+        </div>
+
+        <div id="projectGrid" class="project-grid" hidden></div>
+      </section>
+    </section>
+
+    <section id="workspaceView" hidden>
+      <div class="workspace-heading">
+        <div class="workspace-title">
+          <button id="backToDashboardButton" class="icon-button" type="button" aria-label="返回全部排期">←</button>
+          <div>
+            <p class="eyebrow">TIMELINE PLANNER</p>
+            <input id="projectNameInput" class="project-name-input" type="text" aria-label="项目名称">
+            <p id="projectMeta" class="project-meta"></p>
+          </div>
+        </div>
+        <div class="heading-actions">
+          <button id="duplicateProjectButton" class="button secondary" type="button">复制</button>
+          <button id="exportMenuButton" class="button secondary" type="button">导出</button>
+          <button id="addTaskButton" class="button primary" type="button">添加任务</button>
+        </div>
+      </div>
+
+      <section id="riskBanner" class="risk-banner" hidden>
+        <div>
+          <strong id="riskBannerTitle"></strong>
+          <p id="riskBannerText"></p>
+        </div>
+        <button id="showRisksButton" class="text-button" type="button">查看提醒</button>
+      </section>
+
+      <section class="project-controls panel">
+        <div class="control-group">
+          <label for="projectStartInput">项目开始</label>
+          <input id="projectStartInput" type="date">
+        </div>
+        <div class="control-group">
+          <label for="projectEndInput">项目结束</label>
+          <input id="projectEndInput" type="date">
+        </div>
+        <div class="control-group grow">
+          <label for="projectDescriptionInput">项目说明</label>
+          <input id="projectDescriptionInput" type="text" placeholder="例如：从需求确认到正式上线">
+        </div>
+      </section>
+
+      <nav class="view-tabs" aria-label="排期视图">
+        <button class="view-tab active" type="button" data-view="timeline">时间轴</button>
+        <button class="view-tab" type="button" data-view="list">任务清单</button>
+        <button class="view-tab" type="button" data-view="risks">风险提醒 <span id="riskTabCount">0</span></button>
+      </nav>
+
+      <section id="timelinePanel" class="workspace-panel">
+        <div class="timeline-toolbar">
+          <div class="legend">
+            <span><i class="legend-dot not-started"></i>未开始</span>
+            <span><i class="legend-dot in-progress"></i>进行中</span>
+            <span><i class="legend-dot completed"></i>已完成</span>
+            <span><i class="legend-dot at-risk"></i>有风险</span>
+          </div>
+          <div class="timeline-tools">
+            <button id="todayButton" class="small-button" type="button">定位今天</button>
+          </div>
+        </div>
+        <div id="timelineEmpty" class="inline-empty" hidden>
+          <strong>时间线上还没有任务</strong>
+          <p>添加任务并设置开始、截止日期后，这里会自动生成时间条。</p>
+          <button class="button primary" type="button" data-action="add-task">添加第一个任务</button>
+        </div>
+        <div id="timelineScroller" class="timeline-scroller">
+          <div id="timelineCanvas" class="timeline-canvas"></div>
+        </div>
+      </section>
+
+      <section id="listPanel" class="workspace-panel" hidden>
+        <div class="table-wrap">
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th>任务</th>
+                <th>阶段</th>
+                <th>负责人</th>
+                <th>开始</th>
+                <th>截止</th>
+                <th>状态</th>
+                <th>风险</th>
+                <th aria-label="操作"></th>
+              </tr>
+            </thead>
+            <tbody id="taskTableBody"></tbody>
+          </table>
+        </div>
+        <div id="listEmpty" class="inline-empty" hidden>
+          <strong>还没有任务</strong>
+          <p>先添加一项任务，再逐步补充项目节点。</p>
+          <button class="button primary" type="button" data-action="add-task">添加任务</button>
+        </div>
+      </section>
+
+      <section id="risksPanel" class="workspace-panel" hidden>
+        <div id="riskList" class="risk-list"></div>
+        <div id="risksEmpty" class="inline-empty" hidden>
+          <strong>当前没有风险提醒</strong>
+          <p>任务日期、负责人和依赖关系都处于正常状态。</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <input id="importFileInput" type="file" accept="application/json,.json" hidden>
+
+  <div id="createModal" class="modal-backdrop" hidden>
+    <section class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="createModalTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">NEW TIMELINE</p>
+          <h2 id="createModalTitle">新建排期</h2>
+          <p>选择一个模板，之后仍可自由修改所有任务。</p>
+        </div>
+        <button class="close-button" type="button" data-action="close-modal" aria-label="关闭">×</button>
+      </div>
+
+      <div class="template-grid">
+        <button class="template-card selected" type="button" data-template="cultural">
+          <span class="template-icon">文</span>
+          <strong>文创产品开发</strong>
+          <small>11 个常用节点</small>
+        </button>
+        <button class="template-card" type="button" data-template="brand">
+          <span class="template-icon">品</span>
+          <strong>品牌设计项目</strong>
+          <small>8 个常用节点</small>
+        </button>
+        <button class="template-card" type="button" data-template="event">
+          <span class="template-icon">活</span>
+          <strong>活动策划</strong>
+          <small>9 个常用节点</small>
+        </button>
+        <button class="template-card" type="button" data-template="blank">
+          <span class="template-icon">＋</span>
+          <strong>空白项目</strong>
+          <small>从零开始</small>
+        </button>
+      </div>
+
+      <div class="form-grid">
+        <label class="field field-wide">
+          <span>项目名称</span>
+          <input id="createProjectNameInput" type="text" placeholder="例如：秋季文创新品开发">
+        </label>
+        <label class="field">
+          <span>开始日期</span>
+          <input id="createProjectStartInput" type="date">
+        </label>
+        <label class="field">
+          <span>结束日期</span>
+          <input id="createProjectEndInput" type="date">
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-action="close-modal">取消</button>
+        <button id="createProjectConfirmButton" class="button primary" type="button">创建排期</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="taskModal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">TASK</p>
+          <h2 id="taskModalTitle">添加任务</h2>
+        </div>
+        <button class="close-button" type="button" data-action="close-task-modal" aria-label="关闭">×</button>
+      </div>
+
+      <form id="taskForm">
+        <input id="taskIdInput" type="hidden">
+        <div class="form-grid">
+          <label class="field field-wide">
+            <span>任务名称</span>
+            <input id="taskNameInput" type="text" required placeholder="例如：首轮样品确认">
+          </label>
+          <label class="field">
+            <span>阶段</span>
+            <input id="taskPhaseInput" type="text" list="phaseOptions" placeholder="例如：打样">
+          </label>
+          <label class="field">
+            <span>负责人</span>
+            <input id="taskOwnerInput" type="text" placeholder="姓名或角色">
+          </label>
+          <label class="field">
+            <span>开始日期</span>
+            <input id="taskStartInput" type="date" required>
+          </label>
+          <label class="field">
+            <span>截止日期</span>
+            <input id="taskEndInput" type="date" required>
+          </label>
+          <label class="field">
+            <span>状态</span>
+            <select id="taskStatusInput">
+              <option value="not-started">未开始</option>
+              <option value="in-progress">进行中</option>
+              <option value="completed">已完成</option>
+              <option value="at-risk">有风险</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>前置任务</span>
+            <select id="taskDependencyInput">
+              <option value="">无</option>
+            </select>
+          </label>
+          <label class="field field-wide">
+            <span>备注</span>
+            <textarea id="taskNotesInput" rows="3" placeholder="补充交付物、确认条件或风险说明"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions split-actions">
+          <button id="deleteTaskButton" class="button danger" type="button" hidden>删除任务</button>
+          <span></span>
+          <button class="button secondary" type="button" data-action="close-task-modal">取消</button>
+          <button class="button primary" type="submit">保存任务</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div id="exportMenu" class="popover" hidden>
+    <button type="button" data-export="json">导出 JSON 备份</button>
+    <button type="button" data-export="csv">导出 CSV 清单</button>
+    <button type="button" data-export="print">打印 / 保存 PDF</button>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <datalist id="phaseOptions">
+    <option value="需求确认">
+    <option value="资料整理">
+    <option value="概念设计">
+    <option value="方案确认">
+    <option value="供应商询价">
+    <option value="打样">
+    <option value="修改">
+    <option value="生产">
+    <option value="质检">
+    <option value="上线">
+  </datalist>
+
+  <script src="timeline.js"></script>
+</body>
+</html>
