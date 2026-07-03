@@ -89,3 +89,17 @@ http://localhost:8000
 
 `design-board.html` contains its runtime script inline. If IndexedDB is blocked,
 the app automatically falls back to browser localStorage and still opens normally.
+
+## Timeline Planner
+
+The toolbox now includes a lightweight project scheduling tool:
+
+- Cultural product, brand design, event, and blank templates
+- Task owner, phase, start/end dates, status, dependency, and notes
+- Automatic horizontal timeline
+- Overdue, missing owner, dependency, and date risk detection
+- Multiple local schedule projects
+- JSON import/export, CSV export, and print/PDF
+- Browser localStorage persistence without login
+
+Open `timeline-planner.html` directly, or enter it from the homepage.
