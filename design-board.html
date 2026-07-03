@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Design Board：面向文创与产品策划的项目工作台。">
+  <title>Design Board · Creative Toolbox</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="loading" class="loading-screen">
+    <div class="spinner"></div>
+    <strong>正在打开 Design Board</strong>
+    <span>正在加载项目</span>
+  </div>
+
+  <main id="dashboard" class="dashboard" hidden>
+    <header class="dashboard-header">
+      <div>
+        <a class="toolbox-back-link" href="index.html">← 返回工具箱</a>
+        <p class="eyebrow">DESIGN BOARD</p>
+        <h1>Design Board</h1>
+        <p class="subtitle">文创产品从策划、叙事、工艺到提案的一体化工作台</p>
+      </div>
+      <div class="header-actions">
+        <label class="button secondary file-button">
+          导入备份
+          <input id="importFile" type="file" accept="application/json,.json" hidden>
+        </label>
+        <button class="button secondary" type="button" id="exportAllButton">导出全部</button>
+        <button class="button primary" type="button" id="newProjectButton">+ 新建项目</button>
+      </div>
+    </header>
+
+    <section class="dashboard-section">
+      <div class="section-heading project-heading-row">
+        <div>
+          <p class="eyebrow">PROJECTS</p>
+          <h2>我的项目</h2>
+        </div>
+        <label class="search-box">
+          <span>搜索</span>
+          <input id="projectSearch" type="search" placeholder="输入项目名称">
+        </label>
+      </div>
+      <div id="projectGrid" class="project-grid"></div>
+      <div id="emptyProjects" class="empty-state" hidden>
+        <div class="empty-icon">＋</div>
+        <h3>还没有本地项目</h3>
+        <p>新建一个项目，从产品地图开始整理。</p>
+        <button class="button primary" type="button" id="emptyNewProjectButton">新建项目</button>
+      </div>
+    </section>
+  </main>
+
+  <main id="editor" class="editor" hidden>
+    <header class="editor-header">
+      <div class="editor-left">
+        <button class="icon-button back-button" type="button" id="backButton" aria-label="返回项目列表">←</button>
+        <div>
+          <div class="editor-title-line">
+            <h1 id="editorTitle">项目</h1>
+            <span id="readOnlyBadge" class="badge muted" hidden>只读示例</span>
+          </div>
+          <div id="saveStatus" class="save-status">已保存到本机</div>
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="button secondary" type="button" id="copyDemoButton" hidden>复制为我的项目</button>
+        <button class="button ghost" type="button" id="themeButton">主题</button>
+        <button class="button ghost" type="button" id="versionButton">版本</button>
+        <button class="button ghost" type="button" id="exportProjectButton">导出项目</button>
+        <button class="button secondary" type="button" id="printProposalButton">打印 / PDF</button>
+        <button class="button primary" type="button" id="addProductButton">+ 产品</button>
+      </div>
+    </header>
+
+    <nav class="module-tabs" aria-label="项目模块">
+      <button class="module-tab active" type="button" data-tab="0"><span>01</span>产品地图</button>
+      <button class="module-tab" type="button" data-tab="1"><span>02</span>文化叙事</button>
+      <button class="module-tab" type="button" data-tab="2"><span>03</span>工艺与供应</button>
+      <button class="module-tab" type="button" data-tab="3"><span>04</span>提案输出</button>
+    </nav>
+
+    <section class="project-overview" id="projectOverview">
+      <div class="overview-heading">
+        <div>
+          <p class="eyebrow">PROJECT BRIEF</p>
+          <h2>项目概览</h2>
+        </div>
+        <button class="text-button" type="button" id="toggleOverviewButton">收起</button>
+      </div>
+      <div id="overviewContent" class="overview-content">
+        <label class="field full-span">
+          <span>项目概述</span>
+          <textarea id="overviewText" rows="3" placeholder="描述项目背景、目标、范围和关键约束"></textarea>
+        </label>
+        <div class="overview-fields">
+          <label class="field"><span>委托方 / 品牌</span><input id="clientField" type="text" placeholder="例如：高校文创中心"></label>
+          <label class="field"><span>项目目标</span><input id="objectiveField" type="text" placeholder="例如：形成秋季新品提案"></label>
+          <label class="field"><span>目标人群</span><input id="audienceField" type="text" placeholder="例如：新生、校友、访客"></label>
+          <label class="field"><span>销售渠道</span><input id="channelField" type="text" placeholder="例如：线下店、公众号、小程序"></label>
+          <label class="field"><span>预算范围</span><input id="budgetField" type="text" placeholder="例如：首批 10 万元"></label>
+          <label class="field"><span>计划节点</span><input id="deadlineField" type="text" placeholder="例如：8 月完成打样"></label>
+        </div>
+        <div class="attachment-row">
+          <div>
+            <strong>项目附件</strong>
+            <p>测试版附件会随项目保存在当前浏览器，并进入 JSON 备份。</p>
+          </div>
+          <label class="button secondary file-button" id="attachmentUploadLabel">
+            + 添加附件
+            <input id="overviewFileInput" type="file" multiple hidden>
+          </label>
+        </div>
+        <div id="overviewFiles" class="attachment-list"></div>
+      </div>
+    </section>
+
+    <section class="table-toolbar" id="tableToolbar">
+      <div class="toolbar-group">
+        <button class="button compact secondary" type="button" id="addRowButton">+ 行</button>
+        <button class="button compact ghost" type="button" id="duplicateRowsButton">复制</button>
+        <button class="button compact ghost danger-text" type="button" id="deleteRowsButton">删除</button>
+        <span class="toolbar-divider"></span>
+        <button class="button compact ghost" type="button" id="selectAllButton">全选</button>
+        <button class="button compact ghost" type="button" id="clearSelectionButton">取消</button>
+      </div>
+      <div class="toolbar-group toolbar-meta">
+        <button class="text-button" type="button" id="undoButton">撤销</button>
+        <button class="text-button" type="button" id="redoButton">重做</button>
+        <span id="rowCount">0 个产品</span>
+      </div>
+    </section>
+
+    <section class="module-panel active" data-panel="0">
+      <div class="table-wrapper" id="productTable"></div>
+    </section>
+    <section class="module-panel" data-panel="1">
+      <div class="table-wrapper" id="storyTable"></div>
+    </section>
+    <section class="module-panel" data-panel="2">
+      <div class="table-wrapper" id="craftTable"></div>
+    </section>
+    <section class="module-panel proposal-panel" data-panel="3">
+      <div class="proposal-actions">
+        <div>
+          <p class="eyebrow">PROPOSAL PREVIEW</p>
+          <h2>提案预览</h2>
+        </div>
+        <div>
+          <button class="button secondary" type="button" id="copyMarkdownButton">复制 Markdown</button>
+          <button class="button secondary" type="button" id="downloadMarkdownButton">下载 .md</button>
+        </div>
+      </div>
+      <article id="proposalPreview" class="proposal-sheet"></article>
+    </section>
+  </main>
+
+  <div id="newProjectModal" class="modal" hidden>
+    <div class="modal-card small-card" role="dialog" aria-modal="true" aria-labelledby="newProjectTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow">NEW PROJECT</p><h2 id="newProjectTitle">创建项目</h2></div>
+        <button class="icon-button close-modal" type="button" data-close="newProjectModal">×</button>
+      </div>
+      <label class="field"><span>项目名称</span><input id="newProjectName" type="text" placeholder="例如：2026 秋季文创新品"></label>
+      <div class="field">
+        <span>项目图标</span>
+        <div id="emojiGrid" class="emoji-grid"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="button secondary close-modal" type="button" data-close="newProjectModal">取消</button>
+        <button class="button primary" type="button" id="createProjectConfirmButton">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="productModal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="productModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow">NEW PRODUCT</p><h2 id="productModalTitle">添加产品</h2></div>
+        <button class="icon-button close-modal" type="button" data-close="productModal">×</button>
+      </div>
+      <div class="modal-grid">
+        <label class="field"><span>产品名</span><input id="productName" type="text"></label>
+        <label class="field"><span>主题</span><select id="productTheme"></select></label>
+        <label class="field"><span>品类</span><input id="productCategory" type="text"></label>
+        <label class="field"><span>阶段</span><select id="productPhase"></select></label>
+        <label class="field"><span>目标售价</span><input id="productPrice" type="text" placeholder="例如：¥68"></label>
+        <label class="field"><span>预估成本</span><input id="productCost" type="text" placeholder="例如：¥22"></label>
+        <label class="field full-span"><span>视觉方向</span><textarea id="productVisual" rows="2"></textarea></label>
+        <label class="field full-span"><span>文化背景</span><textarea id="productStory" rows="2"></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button class="button secondary close-modal" type="button" data-close="productModal">取消</button>
+        <button class="button primary" type="button" id="createProductConfirmButton">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="themeModal" class="modal" hidden>
+    <div class="modal-card small-card" role="dialog" aria-modal="true" aria-labelledby="themeModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow">THEMES</p><h2 id="themeModalTitle">主题管理</h2></div>
+        <button class="icon-button close-modal" type="button" data-close="themeModal">×</button>
+      </div>
+      <div id="themeList" class="theme-list"></div>
+      <div id="newThemeRow" class="inline-form">
+        <input id="newThemeName" type="text" placeholder="输入新主题名称">
+        <button class="button primary" type="button" id="addThemeButton">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="versionModal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="versionModalTitle">
+      <div class="modal-header">
+        <div><p class="eyebrow">VERSIONS</p><h2 id="versionModalTitle">版本历史</h2></div>
+        <button class="icon-button close-modal" type="button" data-close="versionModal">×</button>
+      </div>
+      <div class="version-create">
+        <input id="versionNote" type="text" placeholder="版本备注，例如：第一次客户评审">
+        <button class="button primary" type="button" id="saveVersionButton">保存当前版本</button>
+      </div>
+      <div id="versionList" class="version-list"></div>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button class="lightbox-close" type="button" id="closeLightboxButton">×</button>
+    <img id="lightboxImage" alt="预览图片">
+  </div>
+
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
