@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>后台管理 · Creative Toolbox</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;background:#f5f6f8;color:#2c2c2c;display:flex;min-height:100vh}
+nav{width:220px;background:#1a1a2e;color:#fff;padding:20px 0;flex-shrink:0}
+nav h2{padding:0 20px 20px;font-size:15px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px}
+nav a{display:block;padding:10px 20px;color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;cursor:pointer}
+nav a:hover,nav a.active{color:#fff;background:rgba(255,255,255,.06)}
+main{flex:1;padding:30px}
+section{display:none}
+section.active{display:block}
+h3{font-size:18px;margin-bottom:8px}
+label{display:block;font-size:11px;color:#888;margin:10px 0 3px;font-weight:600}
+input,textarea,select{width:100%;max-width:500px;padding:8px 10px;border:1px solid #dde;border-radius:5px;font-size:13px;font-family:inherit}
+textarea{min-height:60px;resize:vertical}
+button{padding:8px 18px;border-radius:5px;border:none;background:#d4a030;color:#fff;font-size:13px;cursor:pointer;font-weight:600;margin-top:12px}
+button:hover{background:#c09020}
+button.secondary{background:#fff;color:#555;border:1px solid #dde}
+.status{font-size:11px;color:#2e7d32;margin-left:10px}
+.status.error{color:#c0392b}
+.card{background:#fff;padding:16px;border-radius:8px;border:1px solid #e8e8ec;margin-bottom:10px}
+.card h4{font-size:14px;margin-bottom:6px}
+.card p{font-size:12px;color:#888}
+.token-box{background:#fff;padding:20px;border-radius:8px;border:1px solid #e8e8ec;max-width:500px}
+</style>
+</head>
+<body>
+<nav>
+  <h2>⚙ 后台管理</h2>
+  <a class="active" onclick="showTab('auth')">🔑 认证</a>
+  <a onclick="showTab('site')">🏠 站点设置</a>
+  <a onclick="showTab('tools')">🛠 工具管理</a>
+  <a onclick="showTab('workflows')">📋 工作流</a>
+  <a onclick="showTab('updates')">📢 更新公告</a>
+  <a href="index.html" style="margin-top:20px;border-top:1px solid rgba(255,255,255,.1);padding-top:16px">← 回首页</a>
+</nav>
+
+<main id="main">
+  <!-- Auth -->
+  <section id="tab-auth" class="active">
+    <h3>🔑 GitHub 认证</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:16px">需要 GitHub Personal Access Token（scope: repo）来保存修改。</p>
+    <div class="token-box">
+      <label>GitHub Token</label>
+      <input type="password" id="ghToken" placeholder="ghp_...">
+      <button onclick="saveToken()">保存</button>
+      <span class="status" id="tokenStatus"></span>
+    </div>
+  </section>
+
+  <!-- Site -->
+  <section id="tab-site">
+    <h3>🏠 站点设置</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:16px">编辑站点名称、SEO 和首页文案。</p>
+    <div id="siteForm"><p style="color:#888">加载中…</p></div>
+  </section>
+
+  <!-- Tools -->
+  <section id="tab-tools">
+    <h3>🛠 工具管理</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:16px">管理首页展示的工具卡片。状态设为 "live" 即上线。</p>
+    <div id="toolsForm"><p style="color:#888">加载中…</p></div>
+    <button onclick="addTool()" style="margin-top:16px">+ 新增工具</button>
+  </section>
+
+  <!-- Workflows -->
+  <section id="tab-workflows">
+    <h3>📋 工作流</h3>
+    <div id="workflowsForm"><p style="color:#888">加载中…</p></div>
+  </section>
+
+  <!-- Updates -->
+  <section id="tab-updates">
+    <h3>📢 更新公告</h3>
+    <div id="updatesForm"><p style="color:#888">加载中…</p></div>
+    <button onclick="addUpdate()" style="margin-top:16px">+ 新增公告</button>
+  </section>
+</main>
+
+<script>
+const REPO = "raffaelelzk/design-board";
+const API = "https://api.github.com/repos/" + REPO + "/contents/data/";
+let token = localStorage.getItem("gh_token") || "";
+
+document.getElementById("ghToken").value = token;
+
+function showTab(name) {
+  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+  event.target.classList.add("active");
+  if (name === "site") loadSite();
+  if (name === "tools") loadTools();
+  if (name === "workflows") loadWorkflows();
+  if (name === "updates") loadUpdates();
+}
+
+function saveToken() {
+  token = document.getElementById("ghToken").value.trim();
+  localStorage.setItem("gh_token", token);
+  document.getElementById("tokenStatus").textContent = "✓ 已保存";
+  document.getElementById("tokenStatus").className = "status";
+}
+
+async function apiGet(file) {
+  const resp = await fetch(API + file + "?t=" + Date.now());
+  const data = await resp.json();
+  return JSON.parse(atob(data.content));
+}
+
+async function apiPut(file, content, sha) {
+  const body = {message: "admin: update " + file, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), sha};
+  const resp = await fetch(API + file, {
+    method: "PUT", headers: {"Authorization": "Bearer " + token, "Content-Type": "application/json"}, body: JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error(await resp.text());
+  return "✓ 已保存并推送";
+}
+
+// --- Site ---
+async function loadSite() {
+  const d = await apiGet("site.json");
+  document.getElementById("siteForm").innerHTML = `
+    <label>网站名</label><input id="f_site_name" value="${esc(d.name || '')}">
+    <label>标语</label><input id="f_site_tagline" value="${esc(d.tagline || '')}">
+    <label>描述</label><textarea id="f_site_description">${esc(d.description || '')}</textarea>
+    <label>Hero Eyebrow</label><input id="f_site_heroEyebrow" value="${esc(d.heroEyebrow || '')}">
+    <label>Logo 符号</label><input id="f_site_logo" value="${esc(d.logo || '')}" maxlength="2">
+    <label>Footer</label><input id="f_site_footer" value="${esc(d.footer || '')}">
+    <button onclick="saveSite()">保存站点设置</button>
+  `;
+}
+
+async function saveSite() {
+  const content = {
+    name: document.getElementById("f_site_name").value,
+    tagline: document.getElementById("f_site_tagline").value,
+    description: document.getElementById("f_site_description").value,
+    heroEyebrow: document.getElementById("f_site_heroEyebrow").value,
+    logo: document.getElementById("f_site_logo").value,
+    footer: document.getElementById("f_site_footer").value,
+    seo: {title: document.getElementById("f_site_name").value, description: document.getElementById("f_site_description").value}
+  };
+  const sha = (await (await fetch(API + "site.json?t=" + Date.now())).json()).sha;
+  try {
+    await apiPut("site.json", content, sha);
+    alert("站点设置已保存！");
+  } catch(e) { alert("保存失败: " + e.message); }
+}
+
+// --- Tools ---
+async function loadTools() {
+  const d = await apiGet("tools.json");
+  const tools = d.tools || [];
+  document.getElementById("toolsForm").innerHTML = tools.map((t, i) => `
+    <div class="card">
+      <h4>${esc(t.name || '')} <span style="font-size:10px;color:#888">[${t.status}]</span></h4>
+      <label>名称</label><input onchange="updateTool(${i},'name',this.value)" value="${esc(t.name || '')}">
+      <label>标题</label><input onchange="updateTool(${i},'title',this.value)" value="${esc(t.title || '')}">
+      <label>描述</label><input onchange="updateTool(${i},'description',this.value)" value="${esc(t.description || '')}">
+      <label>图标</label><input onchange="updateTool(${i},'icon',this.value)" value="${esc(t.icon || '')}" maxlength="2">
+      <label>URL</label><input onchange="updateTool(${i},'url',this.value)" value="${esc(t.url || '')}">
+      <label>状态</label><select onchange="updateTool(${i},'status',this.value)">
+        <option value="live" ${t.status==='live'?'selected':''}>已上线</option>
+        <option value="coming" ${t.status==='coming'?'selected':''}>即将上线</option>
+        <option value="hidden" ${t.status==='hidden'?'selected':''}>隐藏</option>
+      </select>
+      <label>标签（逗号分隔）</label><input onchange="updateTool(${i},'tags',this.value.split(',').map(s=>s.trim()))" value="${esc((t.tags||[]).join(', '))}">
+      <button class="secondary" onclick="removeTool(${i})" style="margin-top:8px">删除</button>
+    </div>
+  `).join('');
+  window._toolsData = d;
+}
+
+function updateTool(i, field, value) {
+  if (!window._toolsData) return;
+  window._toolsData.tools[i][field] = value;
+  window._dirty = true;
+}
+
+function addTool() {
+  if (!window._toolsData) return;
+  window._toolsData.tools.push({id:"tool-"+Date.now(),name:"新工具",title:"",description:"",icon:"▤",tags:[],status:"coming",url:"",category:"",sort:99});
+  loadToolsContent(window._toolsData);
+}
+
+function removeTool(i) {
+  if (!window._toolsData) return;
+  window._toolsData.tools.splice(i, 1);
+  window._dirty = true;
+  loadToolsContent(window._toolsData);
+}
+
+function loadToolsContent(d) {
+  window._toolsData = d;
+  loadTools();
+}
+
+async function saveDataFile(fileName, data) {
+  const resp = await fetch(API + fileName + "?t=" + Date.now());
+  const info = await resp.json();
+  const content = JSON.parse(JSON.stringify(data));
+  const body = {message: "admin: update " + fileName, content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))), sha: info.sha};
+  const r = await fetch(API + fileName, {method: "PUT", headers: {"Authorization": "Bearer " + token, "Content-Type": "application/json"}, body: JSON.stringify(body)});
+  if (!r.ok) throw new Error(await r.text());
+  return true;
+}
+
+window.addEventListener("beforeunload", () => { if (window._dirty) return "有未保存的修改"; });
+
+// --- Workflows ---
+async function loadWorkflows() {
+  const d = await apiGet("workflows.json");
+  document.getElementById("workflowsForm").innerHTML = (d.workflows||[]).map((w,i) => `
+    <div class="card">
+      <label>步骤号</label><input type="number" value="${w.step}" onchange="updateWF(${i},'step',parseInt(this.value))">
+      <label>标题</label><input value="${esc(w.title||'')}" onchange="updateWF(${i},'title',this.value)">
+      <label>描述</label><input value="${esc(w.description||'')}" onchange="updateWF(${i},'description',this.value)">
+      <label>图标</label><input value="${esc(w.icon||'')}" onchange="updateWF(${i},'icon',this.value)">
+    </div>
+  `).join('') + '<button onclick="saveFile(\'workflows.json\', window._wfData)" style="margin-top:12px">保存工作流</button>';
+  window._wfData = d;
+}
+function updateWF(i,f,v) { if(window._wfData){window._wfData.workflows[i][f]=v;window._dirty=true;} }
+
+// --- Updates ---
+async function loadUpdates() {
+  const d = await apiGet("updates.json");
+  document.getElementById("updatesForm").innerHTML = (d.updates||[]).map((u,i) => `
+    <div class="card">
+      <label>日期</label><input value="${esc(u.date||'')}" onchange="updateUP(${i},'date',this.value)">
+      <label>内容</label><input value="${esc(u.text||'')}" onchange="updateUP(${i},'text',this.value)">
+      <label>类型</label><select onchange="updateUP(${i},'type',this.value)">
+        <option value="live" ${u.type==='live'?'selected':''}>已上线</option>
+        <option value="planned" ${u.type==='planned'?'selected':''}>规划中</option>
+      </select>
+    </div>
+  `).join('') + '<button onclick="saveFile(\'updates.json\', window._upData)" style="margin-top:12px">保存公告</button>';
+  window._upData = d;
+}
+function updateUP(i,f,v) { if(window._upData){window._upData.updates[i][f]=v;window._dirty=true;} }
+function addUpdate() {
+  if(!window._upData) return;
+  window._upData.updates.push({date:new Date().toISOString().slice(0,7),text:"新公告",type:"planned"});
+  window._dirty=true; loadUpdates();
+}
+
+async function saveFile(fn, data) {
+  try {
+    const resp = await fetch(API + fn + "?t=" + Date.now());
+    const info = await resp.json();
+    const body = {message:"admin: update "+fn, content:btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2)))), sha:info.sha};
+    await fetch(API+fn, {method:"PUT", headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"}, body:JSON.stringify(body)});
+    window._dirty=false; alert("已保存！");
+  } catch(e) { alert("保存失败: "+e.message); }
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
