@@ -1,0 +1,52 @@
+{
+  "tools": [
+    {
+      "id": "design-board",
+      "name": "Design Board",
+      "title": "设计台板",
+      "description": "整理产品、文化叙事、工艺供应信息，并输出完整提案。",
+      "icon": "▤",
+      "tags": [
+        "产品策划",
+        "项目管理",
+        "提案输出"
+      ],
+      "status": "live",
+      "url": "design-board.html?v=3",
+      "category": "核心工具",
+      "sort": 1
+    },
+    {
+      "id": "timeline-planner",
+      "name": "Timeline Planner",
+      "title": "排期规划",
+      "description": "用甘特图管理产品开发周期，从需求确认到正式上线。",
+      "icon": "▥",
+      "tags": [
+        "时间管理",
+        "甘特图",
+        "排期"
+      ],
+      "status": "live",
+      "url": "timeline-planner.html?v=1",
+      "category": "核心工具",
+      "sort": 2
+    },
+    {
+      "id": "launch-checklist",
+      "name": "Launch Checklist",
+      "title": "上线清单",
+      "description": "管理产品规格、打样状态、供应商和上线进度。",
+      "icon": "▦",
+      "tags": [
+        "打样追踪",
+        "供应商",
+        "上线管理"
+      ],
+      "status": "live",
+      "url": "launch-checklist.html?v=1",
+      "category": "核心工具",
+      "sort": 3
+    }
+  ]
+}
