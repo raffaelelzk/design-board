@@ -1207,6 +1207,5 @@
     }
   });
   bindEvents();
-  if (state.activeProjectId && currentProject()) showWorkspace();
-  else renderDashboard();
+  renderDashboard(); // always show project list on load
 })();
