@@ -598,38 +598,7 @@
     if (supabase) cloudSave(toSave);
   }
 
-  function _old_persistStore {
-    if (isReadOnly || !pendingSave || saveInProgress) return;
-    if (!storageAvailable) {
-      setSaveStatus("本地保存不可用，请导出备份", "error");
-      return;
-    }
-    saveInProgress = true;
-    pendingSave = false;
-    setSaveStatus("正在保存到本机…", "saving");
-    try {
-      Object.values(store.projects).forEach(project => {
-        project.undoStack = (project.undoStack || []).slice(-25);
-        project.redoStack = (project.redoStack || []).slice(-25);
-      });
-      if (storageMode === "indexeddb" && database) {
-        await withTimeout(idbPut(APP_KEY, store), 2500, "本地数据库保存超时");
-      } else {
-        localStoragePut(APP_KEY, store);
-      }
-      const storageLabel = storageMode === "indexeddb" ? "本机" : "浏览器";
-      setSaveStatus(`已保存到${storageLabel} · ${new Date().toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })}`, "saved");
-    } catch (error) {
-      console.error(error);
-      pendingSave = true;
-      storageAvailable = false;
-      setSaveStatus("保存失败，请导出备份", "error");
-      toast("本地保存失败，请立即导出项目备份", "error");
-    } finally {
-      saveInProgress = false;
-      if (pendingSave && storageAvailable) queueSave();
-    }
-  }
+  
 
   async function saveStoreImmediately() {
     if (isReadOnly) return;
