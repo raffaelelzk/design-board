@@ -1,0 +1,25 @@
+{
+  "workflows": [
+    {
+      "step": 1,
+      "title": "整理方案",
+      "description": "在 Design Board 里梳理产品矩阵、文化叙事和工艺约束。",
+      "icon": "📋",
+      "tool": "design-board"
+    },
+    {
+      "step": 2,
+      "title": "安排节奏",
+      "description": "用 Timeline Planner 规划从需求确认到上线的完整周期。",
+      "icon": "📅",
+      "tool": "timeline-planner"
+    },
+    {
+      "step": 3,
+      "title": "检查上线",
+      "description": "在 Launch Checklist 里逐项确认打样、生产和入库状态。",
+      "icon": "✅",
+      "tool": "launch-checklist"
+    }
+  ]
+}
