@@ -1,90 +1,122 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="面向文创与产品策划的轻量工具箱。">
-  <title>Creative Toolbox</title>
-  <link rel="stylesheet" href="home.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="面向文创与产品策划的轻量工具箱。">
+<title>Creative Toolbox</title>
+<link rel="stylesheet" href="home.css">
 </head>
 <body>
-  <header class="shell topbar">
-    <a class="brand" href="index.html" aria-label="Creative Toolbox 首页">
-      <span class="brand-mark">▦</span>
-      <span>Creative Toolbox</span>
-    </a>
-    <span class="topbar-meta">简单、实用的策划工具</span>
-  </header>
+<header class="shell topbar">
+  <a class="brand" href="index.html">
+    <span class="brand-mark" id="logoMark">▦</span>
+    <span id="siteName">Creative Toolbox</span>
+  </a>
+  <span class="topbar-meta" id="siteTagline">简单、实用的策划工具</span>
+</header>
 
-  <main class="shell page">
-    <section class="hero">
-      <p class="eyebrow">CREATIVE WORKFLOW TOOLS</p>
-      <h1>把复杂的策划工作，放进简单的工具里。</h1>
-      <p>选择一个工具开始工作。每个工具聚焦一项清晰任务，不堆叠无关功能。</p>
-    </section>
+<main class="shell page">
+  <section class="hero">
+    <p class="eyebrow" id="heroEyebrow">CREATIVE WORKFLOW TOOLS</p>
+    <h1 id="heroTitle">把复杂的策划工作，放进简单的工具里。</h1>
+    <p id="heroDesc">选择一个工具开始工作。每个工具聚焦一项清晰任务。</p>
+  </section>
 
-    <section aria-labelledby="toolsTitle">
-      <div class="section-heading">
-        <h2 id="toolsTitle">工具</h2>
-        <span class="section-count">3 个可用工具</span>
-      </div>
+  <section id="toolsSection">
+    <div class="section-heading">
+      <h2>工具</h2>
+      <span class="section-count" id="toolCount">加载中…</span>
+    </div>
+    <div class="tool-grid" id="toolGrid"></div>
+  </section>
 
-      <div class="tool-grid">
-        <article class="tool-card">
-          <a class="tool-link" href="design-board.html?v=3&view=list">
-            <div class="tool-card-top">
-              <span class="tool-icon" aria-hidden="true">▤</span>
-              <span class="tool-arrow" aria-hidden="true">↗</span>
-            </div>
-            <div class="tool-copy">
-              <h3>Design Board</h3>
-              <p>整理产品、文化叙事、工艺供应信息，并输出完整提案。</p>
-              <div class="tool-tags" aria-label="工具特点">
-                <span class="tag">产品策划</span>
-                <span class="tag">项目管理</span>
-                <span class="tag">提案输出</span>
-              </div>
-            </div>
-          </a>
-        </article>
+  <section id="workflowSection">
+    <div class="section-heading">
+      <h2>工作流程</h2>
+      <span class="section-count">三步策划</span>
+    </div>
+    <div class="workflow-steps" id="workflowSteps"></div>
+  </section>
 
-        <article class="tool-card">
-          <a class="tool-link" href="timeline-planner.html?v=1&view=list">
-            <div class="tool-card-top">
-              <span class="tool-icon" aria-hidden="true">⌁</span>
-              <span class="tool-arrow" aria-hidden="true">↗</span>
-            </div>
-            <div class="tool-copy">
-              <h3>Timeline Planner</h3>
-              <p>安排设计、打样、生产和上线节点，快速发现延期与任务依赖风险。</p>
-              <div class="tool-tags" aria-label="工具特点">
-                <span class="tag">项目排期</span>
-                <span class="tag">任务节点</span>
-                <span class="tag">风险提醒</span>
-              </div>
-            </div>
-          </a>
-        </article>
+  <section id="updatesSection">
+    <div class="section-heading">
+      <h2>更新</h2>
+      <span class="section-count" id="updateCount"></span>
+    </div>
+    <div class="updates-list" id="updatesList"></div>
+  </section>
+</main>
 
-        <article class="tool-card">
-          <a class="tool-link" href="launch-checklist.html?v=1&view=list">
-            <div class="tool-card-top">
-              <span class="tool-icon" aria-hidden="true">✓</span>
-              <span class="tool-arrow" aria-hidden="true">↗</span>
-            </div>
-            <div class="tool-copy">
-              <h3>Launch Checklist</h3>
-              <p>整理产品规格、效果图和交付节点，快速发现资料缺失与到店风险。</p>
-              <div class="tool-tags" aria-label="工具特点">
-                <span class="tag">产品交付</span>
-                <span class="tag">资料检查</span>
-                <span class="tag">风险提醒</span>
-              </div>
-            </div>
-          </a>
-        </article>
-      </div>
-    </section>
-  </main>
+<footer class="shell footer" id="siteFooter">
+  <span>Creative Toolbox · 简单、实用的策划工具</span>
+  <span class="footer-meta">部署在 GitHub Pages · 数据驱动</span>
+</footer>
+
+<script>
+(async () => {
+  const $ = s => document.querySelector(s);
+  const BASE = "https://raffaelelzk.github.io/design-board/data/";
+  
+  try {
+    const [site, tools, workflows, updates] = await Promise.all([
+      fetch(BASE + "site.json?t=" + Date.now()).then(r => r.json()),
+      fetch(BASE + "tools.json?t=" + Date.now()).then(r => r.json()),
+      fetch(BASE + "workflows.json?t=" + Date.now()).then(r => r.json()),
+      fetch(BASE + "updates.json?t=" + Date.now()).then(r => r.json())
+    ]);
+
+    if (site.name) { $("#siteName").textContent = site.name; document.title = site.name; }
+    if (site.tagline) $("#siteTagline").textContent = site.tagline;
+    if (site.logo) $("#logoMark").textContent = site.logo;
+    if (site.heroEyebrow) $("#heroEyebrow").textContent = site.heroEyebrow;
+    if (site.description) $("#heroDesc").textContent = site.description;
+    if (site.footer) $("#siteFooter").innerHTML = '<span>' + site.footer + '</span><span class="footer-meta">部署在 GitHub Pages · 数据驱动</span>';
+
+    const liveTools = (tools.tools || []).filter(t => t.status === "live");
+    $("#toolCount").textContent = liveTools.length + " 个可用工具";
+    $("#toolGrid").innerHTML = tools.tools.map(t => {
+      const badge = t.status === "coming" ? '<span class="tool-badge coming">即将上线</span>' : '';
+      const link = t.status === "live" ? ' href="' + t.url + '"' : '';
+      return '<article class="tool-card"' + (t.status !== "live" ? ' style="opacity:0.6"' : '') + '>' +
+        '<a class="tool-link"' + link + '>' +
+        '<div class="tool-card-top"><span class="tool-icon">' + (t.icon || '▤') + '</span>' + badge + (t.status === "live" ? '<span class="tool-arrow">↗</span>' : '') + '</div>' +
+        '<div class="tool-copy"><h3>' + t.name + '</h3><p>' + t.description + '</p>' +
+        '<div class="tool-tags">' + (t.tags || []).map(tg => '<span class="tag">' + tg + '</span>').join('') + '</div></div></a></article>';
+    }).join('');
+
+    (workflows.workflows || []).forEach(w => {
+      var div = document.createElement("div"); div.className = "workflow-step";
+      div.innerHTML = '<span class="wf-icon">' + w.icon + '</span><div><strong>' + w.step + '. ' + w.title + '</strong><p>' + w.description + '</p></div>';
+      $("#workflowSteps").appendChild(div);
+    });
+
+    var uItems = updates.updates || [];
+    $("#updateCount").textContent = uItems.length + " 条";
+    $("#updatesList").innerHTML = uItems.map(u => 
+      '<div class="update-item ' + u.type + '"><span class="update-dot"></span><div><strong>' + u.date + '</strong> ' + u.text + '</div></div>'
+    ).join('');
+
+  } catch(e) {
+    $("#toolGrid").innerHTML = '<p style="color:var(--muted);text-align:center">加载失败，请刷新重试。</p>';
+  }
+})();
+</script>
+
+<style>
+.workflow-steps{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.workflow-step{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;background:#fff;border-radius:10px;border:1px solid #e8e8ec}
+.workflow-step .wf-icon{font-size:24px;flex-shrink:0;margin-top:2px}
+.workflow-step strong{display:block;font-size:13px;margin-bottom:2px}
+.workflow-step p{font-size:12px;color:var(--muted);margin:0}
+.updates-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.update-item{display:flex;align-items:flex-start;gap:10px;padding:8px 14px;background:#fff;border-radius:8px;border:1px solid #e8e8ec;font-size:12px}
+.update-item .update-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.update-item.live .update-dot{background:#2e7d32}
+.update-item.planned .update-dot{background:#e0a030}
+.tool-badge.coming{font-size:10px;padding:2px 8px;border-radius:8px;background:#fdf0e8;color:#a07030;font-weight:600}
+.footer{padding:40px 24px 30px;text-align:center;font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.footer-meta{color:#ccc}
+</style>
 </body>
 </html>
