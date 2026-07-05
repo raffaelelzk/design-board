@@ -1,0 +1,24 @@
+{
+  "updates": [
+    {
+      "date": "2026-07",
+      "type": "live",
+      "text": "三个核心工具已上线：Design Board、Timeline Planner、Launch Checklist"
+    },
+    {
+      "date": "2026-07",
+      "type": "planned",
+      "text": "纹样库工具：管理和预览北大文创纹样素材"
+    },
+    {
+      "date": "2026-08",
+      "type": "planned",
+      "text": "更多策划工具持续扩展中"
+    },
+    {
+      "date": "2026-07",
+      "type": "live",
+      "text": "云端同步：同一项目支持多人协作编辑"
+    }
+  ]
+}
