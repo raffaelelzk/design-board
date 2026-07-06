@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="产品生产资料与交付检查工具。">
-  <title>Launch Checklist · Creative Toolbox</title>
+  <title>上线清单 · Creative Toolbox</title>
   <link rel="stylesheet" href="launch.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="tool-theme.css?v=10">
 </head>
 <body>
   <header class="topbar">
@@ -26,12 +26,12 @@
     <section id="dashboardView">
       <div class="page-heading">
         <div>
-          <p class="eyebrow">LAUNCH CHECKLIST</p>
+          <p class="eyebrow">上线清单</p>
           <h1>产品交付清单</h1>
           <p>集中整理产品资料、规格和交付节点，并自动发现缺失信息与风险。</p>
         </div>
         <div class="heading-actions">
-          <button id="importProjectButton" class="button secondary" type="button">导入 JSON</button>
+          <button id="importProjectButton" class="button secondary" type="button">扫码 / 导入</button>
           <button id="openCreateProjectButton" class="button primary" type="button">新建清单</button>
         </div>
       </div>
@@ -66,14 +66,19 @@
       <div class="workspace-heading">
         <div class="workspace-title">
           <button id="backToDashboardButton" class="icon-button" type="button" aria-label="返回全部清单">←</button>
-          <div>
-            <p class="eyebrow">LAUNCH CHECKLIST</p>
-            <input id="projectNameInput" class="project-name-input" type="text" aria-label="清单名称">
+          <div class="workspace-title-copy">
+            <p class="eyebrow">上线清单</p>
+            <div class="project-title-control">
+              <h1 id="projectNameDisplay" class="project-name-display" tabindex="0" aria-label="清单名称，双击可重命名"></h1>
+              <input id="projectNameInput" class="project-name-input" type="text" aria-label="清单名称" hidden>
+            </div>
             <p id="projectMeta" class="project-meta"></p>
           </div>
         </div>
         <div class="heading-actions">
+          <button id="renameProjectButton" class="button secondary" type="button">重命名</button>
           <button id="duplicateProjectButton" class="button secondary" type="button">复制</button>
+          <button id="shareProjectButton" class="button secondary" type="button">分享清单</button>
           <button id="exportMenuButton" class="button secondary" type="button">导出</button>
           <button id="addProductButton" class="button primary" type="button">新增产品</button>
         </div>
@@ -147,8 +152,6 @@
       </section>
     </section>
   </main>
-
-  <input id="importFileInput" type="file" accept="application/json,.json" hidden>
 
   <div id="createProjectModal" class="modal-backdrop" hidden>
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="createProjectTitle">
@@ -375,18 +378,108 @@
     </section>
   </div>
 
+
+  <div id="importShareModal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="importShareTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">导入清单</p>
+          <h2 id="importShareTitle">导入清单</h2>
+          <p>粘贴分享码，或选择对方发来的 .ctbshare 分享文件。</p>
+        </div>
+        <button class="close-button" type="button" data-action="close-import-share" aria-label="关闭">×</button>
+      </div>
+      <textarea id="importShareCodeInput" class="share-code-area compact-share-code" rows="5" placeholder="粘贴以 CTB1. 或 CTB1G. 开头的分享码"></textarea>
+      <div class="share-import-divider"><span>或</span></div>
+      <label class="button secondary share-file-button">
+        选择分享文件
+        <input id="importShareFileInput" type="file" accept=".ctbshare,text/plain" hidden>
+      </label>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-action="close-import-share">取消</button>
+        <button id="importShareCodeButton" class="button primary" type="button">导入清单</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="shareProjectModal" class="modal-backdrop" hidden>
+    <section class="modal modal-wide share-modal-card" role="dialog" aria-modal="true" aria-labelledby="shareProjectTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">分享清单</p>
+          <h2 id="shareProjectTitle">分享清单</h2>
+          <p>优先让对方扫码打开；包含较多图片时使用分享文件。</p>
+        </div>
+        <button class="close-button" type="button" data-action="close-share-project" aria-label="关闭">×</button>
+      </div>
+      <label class="share-private-option">
+        <input id="includePrivateShareInput" type="checkbox">
+        <span><b>包含私密报价</b><small>勾选后，二维码、链接和分享文件都会包含成本报价。</small></span>
+      </label>
+      <section class="cloud-share-card">
+        <div class="cloud-share-heading">
+          <div>
+            <strong>云端短链接</strong>
+            <p>仅在点击生成时上传当前快照；图片和附件进入私有 Storage。</p>
+          </div>
+          <span id="cloudShareStatus" class="cloud-share-status">正在检查配置</span>
+        </div>
+        <div class="cloud-share-actions">
+          <button id="generateCloudShareButton" class="button primary" type="button">生成云端短链接</button>
+          <button id="copyCloudShareButton" class="button secondary" type="button" hidden>复制短链接</button>
+        </div>
+        <div id="cloudShareResult" class="cloud-share-result" hidden>
+          <input id="cloudShareOutput" type="text" readonly aria-label="云端短链接">
+          <p id="cloudShareNote">链接接收者会自动匿名登录，并导入一份自己的本地副本。</p>
+        </div>
+      </section>
+      <div class="share-section-divider"><span>离线分享</span></div>
+      <div class="share-delivery-grid">
+        <section class="share-qr-panel">
+          <canvas id="shareProjectQrCanvas" class="share-qr-canvas" aria-label="清单分享二维码"></canvas>
+          <div id="shareProjectQrFallback" class="share-qr-fallback" hidden></div>
+          <strong>扫码打开清单</strong>
+          <p>网站部署后，对方扫码会打开对应页面，并自动带入待导入清单。</p>
+        </section>
+        <section class="share-options-panel">
+          <div class="share-meta">
+            <span id="shareProjectCodeSize">正在生成…</span>
+            <span id="shareProjectPrivacyMeta">不含私密报价</span>
+          </div>
+          <div class="share-meta">
+            <span id="shareProjectQrStatus">正在准备二维码</span>
+          </div>
+          <button id="downloadShareProjectFileButton" class="button secondary share-wide-button" type="button">下载分享文件</button>
+          <p class="share-help">分享文件不受二维码容量限制，适合带产品图片的清单。</p>
+          <details class="share-code-details">
+            <summary>查看备用分享码</summary>
+            <textarea id="shareProjectCodeOutput" class="share-code-area" rows="6" readonly aria-label="清单分享码"></textarea>
+          </details>
+        </section>
+      </div>
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-action="close-share-project">关闭</button>
+        <button id="copyShareProjectCodeButton" class="button primary" type="button">复制分享链接</button>
+      </div>
+    </section>
+  </div>
+
   <div id="exportMenu" class="popover export-popover" hidden>
     <label class="export-private-toggle">
       <input id="includePrivateExportInput" type="checkbox">
       <span><b>包含私密报价</b><small>仅在你主动选择时导出</small></span>
     </label>
     <div class="popover-divider"></div>
-    <button type="button" data-export="json">导出 JSON 备份</button>
     <button type="button" data-export="csv">导出 CSV 清单</button>
     <button type="button" data-export="print">打印 / 保存 PDF</button>
   </div>
 
   <div id="toast" class="toast" hidden></div>
-  <script src="launch.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js?v=1"></script>
+  <script src="cloud-share.js?v=1"></script>
+  <script src="qr-code.js?v=2"></script>
+  <script src="share-code.js?v=2"></script>
+  <script src="launch.js?v=10"></script>
 </body>
 </html>

@@ -341,7 +341,7 @@
     if (isReadOnly || !activeProject) return;
     if (!storageAvailable) {
       pendingSave = true;
-      setSaveStatus("本地保存不可用，请导出备份", "error");
+      setSaveStatus("本地保存不可用，请复制分享码备份", "error");
       return;
     }
     activeProject.updatedAt = Date.now();
@@ -357,41 +357,9 @@
       idbPut(APP_KEY, toSave).catch(() => {});
     }
     localStoragePut(APP_KEY, toSave);
-    if (supabase) cloudSave(toSave);
   }
 
-  function _old_persistStore {
-    if (isReadOnly || !pendingSave || saveInProgress) return;
-    if (!storageAvailable) {
-      setSaveStatus("本地保存不可用，请导出备份", "error");
-      return;
-    }
-    saveInProgress = true;
-    pendingSave = false;
-    setSaveStatus("正在保存到本机…", "saving");
-    try {
-      Object.values(store.projects).forEach(project => {
-        project.undoStack = (project.undoStack || []).slice(-25);
-        project.redoStack = (project.redoStack || []).slice(-25);
-      });
-      if (storageMode === "indexeddb" && database) {
-        await withTimeout(idbPut(APP_KEY, store), 2500, "本地数据库保存超时");
-      } else {
-        localStoragePut(APP_KEY, store);
-      }
-      const storageLabel = storageMode === "indexeddb" ? "本机" : "浏览器";
-      setSaveStatus(`已保存到${storageLabel} · ${new Date().toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })}`, "saved");
-    } catch (error) {
-      console.error(error);
-      pendingSave = true;
-      storageAvailable = false;
-      setSaveStatus("保存失败，请导出备份", "error");
-      toast("本地保存失败，请立即导出项目备份", "error");
-    } finally {
-      saveInProgress = false;
-      if (pendingSave && storageAvailable) queueSave();
-    }
-  }
+  
 
   async function saveStoreImmediately() {
     if (isReadOnly) return;
@@ -551,6 +519,8 @@
     if (!activeProject) return;
     activeTab = 0;
     selectedRows.clear();
+    window.clearTimeout(window.__loadingTimer);
+    window.clearTimeout(window.revealAppFallback);
     $("#dashboard").hidden = true;
     $("#editor").hidden = false;
     renderEditor();
@@ -1232,7 +1202,7 @@
 
     $("#proposalPreview").innerHTML = `
       <header class="proposal-cover">
-        <span class="proposal-kicker">DESIGN BOARD · PRODUCT PROPOSAL</span>
+        <span class="proposal-kicker">设计台板 · PRODUCT PROPOSAL</span>
         <h1>${escapeHtml(activeProject.name)}</h1>
         <p>${escapeHtml(meta.client || "文创产品策划提案")}</p>
         <p class="proposal-date">生成日期：${new Date().toLocaleDateString("zh-CN")}</p>
@@ -1310,66 +1280,253 @@
     downloadBlob(window.designBoardMarkdown || "", `design-board-proposal-${safeFilePart(activeProject.name)}.md`, "text/markdown;charset=utf-8");
   }
 
-  function cleanProjectForExport(project) {
+  function cleanProjectForShare(project) {
     const output = clone(project);
     output.undoStack = [];
     output.redoStack = [];
     return output;
   }
 
-  function exportCurrentProject() {
-    const payload = {
-      app: "Design Board",
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      project: cleanProjectForExport(activeProject)
-    };
-    downloadBlob(JSON.stringify(payload, null, 2), `design-board-project-${safeFilePart(activeProject.name)}.json`, "application/json");
-    toast("项目备份已导出");
+  function projectsFromSharedPayload(parsed) {
+    if (!parsed || typeof parsed !== "object") return [];
+    if (parsed.project) return [parsed.project];
+    if (Array.isArray(parsed.projects)) return parsed.projects;
+    if (parsed.projects && typeof parsed.projects === "object") return Object.values(parsed.projects);
+    if (parsed.rows && parsed.name) return [parsed];
+    return [];
   }
 
-  function exportAllProjects() {
-    const projects = Object.values(store.projects).map(cleanProjectForExport);
-    const payload = { app: "Design Board", version: 2, exportedAt: new Date().toISOString(), projects };
-    downloadBlob(JSON.stringify(payload, null, 2), `design-board-backup-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
-    toast("全部本地项目已导出");
-  }
+  async function openProjectShareModal() {
+    if (!activeProject) return;
+    const output = $("#projectShareCodeOutput");
+    const size = $("#projectShareCodeSize");
+    const qrStatus = $("#projectShareQrStatus");
+    output.value = "";
+    size.textContent = "正在生成…";
+    qrStatus.textContent = "正在准备二维码";
+    resetCloudShareUi();
+    openModal("projectShareModal");
 
-  async function importBackup(file) {
-    if (!file) return;
     try {
-      const content = await file.text();
-      const parsed = JSON.parse(content);
-      let projects = [];
-      if (parsed.project) projects = [parsed.project];
-      else if (Array.isArray(parsed.projects)) projects = parsed.projects;
-      else if (parsed.projects && typeof parsed.projects === "object") projects = Object.values(parsed.projects);
-      else if (parsed.rows && parsed.name) projects = [parsed];
-      if (!projects.length) throw new Error("文件中没有可识别的项目数据");
+      const payload = {
+        type: "creative-toolbox-design-board",
+        version: 4,
+        sharedAt: new Date().toISOString(),
+        project: cleanProjectForShare(activeProject)
+      };
+      const code = await window.CreativeShare.encode(payload);
+      output.value = code;
+      size.textContent = window.CreativeShare.sizeLabel(code);
+      const qr = window.CreativeShare.renderQr(
+        $("#projectShareQrCanvas"),
+        $("#projectShareQrFallback"),
+        code,
+        { size: 300 }
+      );
+      qrStatus.textContent = qr.available ? "二维码可直接扫码" : "二维码容量不足";
+    } catch (error) {
+      console.error(error);
+      size.textContent = "生成失败";
+      qrStatus.textContent = "无法生成";
+      toast(`分享内容生成失败：${error.message}`, "error");
+    }
+  }
+
+  async function copyProjectShareCode() {
+    const code = $("#projectShareCodeOutput").value.trim();
+    if (!code) return;
+    try {
+      await window.CreativeShare.copy(window.CreativeShare.makeLink(code));
+      toast("分享链接已复制");
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  }
+
+  function downloadProjectShareFile() {
+    const code = $("#projectShareCodeOutput").value.trim();
+    if (!code || !activeProject) return;
+    window.CreativeShare.download(code, `${safeFilePart(activeProject.name)}.ctbshare`);
+    toast("分享文件已下载");
+  }
+
+  async function handleImportShareFile(file) {
+    try {
+      const code = await window.CreativeShare.readFile(file);
+      $("#importShareCodeInput").value = code;
+      await importShareCode();
+    } catch (error) {
+      toast(error.message, "error");
+    } finally {
+      $("#importShareFileInput").value = "";
+    }
+  }
+
+  function openIncomingShareFromUrl() {
+    const code = window.CreativeShare.codeFromLocation();
+    if (!code) return;
+    window.CreativeShare.clearLocationCode();
+    $("#importShareCodeInput").value = code;
+    openModal("importShareModal");
+  }
+
+  function resetCloudShareUi() {
+    const ready = Boolean(window.CreativeCloud?.configured());
+    const status = $("#cloudShareStatus");
+    const generateButton = $("#generateCloudShareButton");
+    $("#cloudShareResult").hidden = true;
+    $("#cloudShareOutput").value = "";
+    $("#copyCloudShareButton").hidden = true;
+    generateButton.disabled = !ready;
+    generateButton.textContent = ready ? "生成云端短链接" : "配置后可用";
+    status.textContent = ready ? "已连接" : "未配置";
+    status.className = `cloud-share-status ${ready ? "ready" : "error"}`;
+    if (!ready) $("#cloudShareNote").textContent = window.CreativeCloud?.configurationMessage?.() || "云端分享未配置。";
+  }
+
+  async function generateCloudProjectShare() {
+    if (!activeProject || !window.CreativeCloud?.configured()) {
+      toast(window.CreativeCloud?.configurationMessage?.() || "云端分享未配置", "error");
+      return;
+    }
+    const button = $("#generateCloudShareButton");
+    const status = $("#cloudShareStatus");
+    button.disabled = true;
+    button.textContent = "正在上传…";
+    status.textContent = "上传中";
+    status.className = "cloud-share-status";
+
+    try {
+      const result = await window.CreativeCloud.createShare({
+        toolType: "creative-toolbox-design-board",
+        name: activeProject.name,
+        payload: {
+          type: "creative-toolbox-design-board",
+          version: 5,
+          sharedAt: new Date().toISOString(),
+          project: cleanProjectForShare(activeProject)
+        },
+        progress: message => {
+          status.textContent = message.replace(/^正在/, "").replace(/…$/, "");
+        }
+      });
+      $("#cloudShareOutput").value = result.link;
+      $("#cloudShareResult").hidden = false;
+      $("#copyCloudShareButton").hidden = false;
+      $("#cloudShareNote").textContent = `已上传 ${result.assetCount} 个文件；链接接收者会导入自己的本地副本。`;
+      status.textContent = "短链接已生成";
+      status.className = "cloud-share-status ready";
+      button.textContent = "重新生成";
+      toast("云端短链接已生成");
+    } catch (error) {
+      console.error(error);
+      status.textContent = "生成失败";
+      status.className = "cloud-share-status error";
+      button.textContent = "重试";
+      toast(`云端分享失败：${error.message}`, "error");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function copyCloudProjectShare() {
+    const link = $("#cloudShareOutput").value.trim();
+    if (!link) return;
+    try {
+      await window.CreativeShare.copy(link);
+      toast("云端短链接已复制");
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  }
+
+  async function importCloudDesignProject(payload) {
+    const source = payload?.project || payload;
+    if (!source || typeof source !== "object" || !Array.isArray(source.rows)) {
+      throw new Error("云端分享中没有有效的设计台板项目。");
+    }
+
+    const project = normalizeProject(source);
+    project.id = uid("project");
+    project.name = project.name || "云端导入项目";
+    project.rows = project.rows.map(row => ({ ...row, id: uid("row") }));
+    project.createdAt = Date.now();
+    project.updatedAt = Date.now();
+    project.undoStack = [];
+    project.redoStack = [];
+    store.projects[project.id] = project;
+    store.activeProjectId = project.id;
+    await saveStoreImmediately();
+    renderDashboard();
+    enterProject(project.id);
+  }
+
+  async function openIncomingCloudShare() {
+    if (!window.CreativeCloud?.tokenFromLocation?.()) return false;
+    window.CreativeCloud.showOverlay("正在连接云端…");
+    try {
+      const shared = await window.CreativeCloud.consumeFromLocation(
+        "creative-toolbox-design-board",
+        message => window.CreativeCloud.updateOverlay(message)
+      );
+      if (!shared) return false;
+      window.CreativeCloud.updateOverlay("正在创建本地副本…");
+      await importCloudDesignProject(shared.payload);
+      toast("云端项目已导入为本地副本");
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast(`云端链接读取失败：${error.message}`, "error");
+      return false;
+    } finally {
+      window.CreativeCloud.hideOverlay();
+    }
+  }
+
+  function openImportShareModal() {
+    $("#importShareCodeInput").value = "";
+    openModal("importShareModal");
+    setTimeout(() => $("#importShareCodeInput").focus(), 60);
+  }
+
+  async function importShareCode() {
+    const button = $("#importShareCodeButton");
+    const code = $("#importShareCodeInput").value.trim();
+    if (!code) {
+      toast("请先粘贴分享码", "error");
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "正在导入…";
+    try {
+      const parsed = await window.CreativeShare.decode(code);
+      const projects = projectsFromSharedPayload(parsed);
+      if (!projects.length) throw new Error("分享码中没有可识别的 设计台板 项目");
 
       projects.forEach(raw => {
         const project = normalizeProject(raw);
-        const originalId = project.id;
-        if (store.projects[project.id] || project.id === DEMO_PROJECT.id) {
-          project.id = uid("project");
-          project.name = `${project.name} · 导入`;
-        }
+        project.id = uid("project");
+        project.name = project.name || "导入项目";
         project.rows = project.rows.map(row => ({ ...row, id: uid("row") }));
-        project.createdAt = project.createdAt || Date.now();
+        project.createdAt = Date.now();
         project.updatedAt = Date.now();
         project.undoStack = [];
         project.redoStack = [];
         store.projects[project.id] = project;
-        if (originalId !== project.id) console.info("Imported project id changed", originalId, project.id);
+        store.activeProjectId = project.id;
       });
+
       await saveStoreImmediately();
+      closeModal("importShareModal");
       renderDashboard();
       toast(`已导入 ${projects.length} 个项目`);
     } catch (error) {
       console.error(error);
       toast(`导入失败：${error.message}`, "error");
     } finally {
-      $("#importFile").value = "";
+      button.disabled = false;
+      button.textContent = "导入项目";
     }
   }
 
@@ -1432,8 +1589,9 @@
     $("#emptyNewProjectButton").addEventListener("click", openNewProjectModal);
     $("#createProjectConfirmButton").addEventListener("click", createProject);
     $("#projectSearch").addEventListener("input", renderDashboard);
-    $("#exportAllButton").addEventListener("click", exportAllProjects);
-    $("#importFile").addEventListener("change", event => importBackup(event.target.files[0]));
+    $("#openImportShareButton").addEventListener("click", openImportShareModal);
+    $("#importShareCodeButton").addEventListener("click", importShareCode);
+    $("#importShareFileInput").addEventListener("change", event => handleImportShareFile(event.target.files?.[0]));
     $("#projectGrid").addEventListener("click", handleProjectGridAction);
     $("#projectGrid").addEventListener("keydown", event => { if (["Enter", " "].includes(event.key)) handleProjectGridAction(event); });
 
@@ -1448,7 +1606,11 @@
     $("#copyDemoButton").addEventListener("click", copyDemoToLocal);
     $("#themeButton").addEventListener("click", openThemeModal);
     $("#versionButton").addEventListener("click", openVersionModal);
-    $("#exportProjectButton").addEventListener("click", exportCurrentProject);
+    $("#shareProjectButton").addEventListener("click", openProjectShareModal);
+    $("#copyProjectShareCodeButton").addEventListener("click", copyProjectShareCode);
+    $("#downloadProjectShareFileButton").addEventListener("click", downloadProjectShareFile);
+    $("#generateCloudShareButton").addEventListener("click", generateCloudProjectShare);
+    $("#copyCloudShareButton").addEventListener("click", copyCloudProjectShare);
     $("#printProposalButton").addEventListener("click", printProposal);
     $("#addProductButton").addEventListener("click", openProductModal);
     $("#createProductConfirmButton").addEventListener("click", createProduct);
@@ -1542,55 +1704,35 @@
     });
   }
 
-  window.revealAppFallback=window.setTimeout(function(){var l=document.getElementById("loading"),d=document.getElementById("dashboard");if(l)l.hidden=true;if(d)d.hidden=false},8000);
+  window.revealAppFallback = window.setTimeout(function () {
+    const loading = document.getElementById("loading");
+    const dashboard = document.getElementById("dashboard");
+    const editor = document.getElementById("editor");
+    if (loading) loading.hidden = true;
+    if (dashboard && (!editor || editor.hidden)) dashboard.hidden = false;
+  }, 8000);
 
-function revealApp() {
+  function revealApp() {
     if (appRevealed) return;
     appRevealed = true;
+    window.clearTimeout(window.__loadingTimer);
+    window.clearTimeout(window.revealAppFallback);
+
     const loading = $("#loading");
     const dashboard = $("#dashboard");
+    const editor = $("#editor");
+    const editorIsOpen = Boolean(activeProject) || Boolean(editor && !editor.hidden);
+
     if (loading) loading.hidden = true;
-    if (dashboard) dashboard.hidden = false;
-    renderDashboard();
+    if (dashboard) dashboard.hidden = editorIsOpen;
+    if (editor && !editorIsOpen) editor.hidden = true;
+    if (!editorIsOpen) renderDashboard();
   }
 
   (function(){setTimeout(function(){if(typeof revealApp==="function"&&!appRevealed)revealApp()},6000)})();
 
 
-  const SUPABASE_URL = "https://rvklyahwvczxtpqxdnpl.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj";
-  const BUCKET_NAME = "design-images";
-  const STORE_FILE = "system_store.json";
-  let supabase = null;
-
-  function initSupabase() {
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {db:{schema:"public"}});
-      return true;
-    } catch(e) { console.warn("Supabase init failed", e); return false; }
-  }
-
-  async function cloudLoad() {
-    if (!supabase) return null;
-    try {
-      const {data} = supabase.storage.from(BUCKET_NAME).getPublicUrl(STORE_FILE);
-      const res = await fetch(data.publicUrl + "?t=" + Date.now());
-      if (!res.ok) return null;
-      return await res.json();
-    } catch(e) { console.warn("Cloud load failed", e); return null; }
-  }
-
-  async function cloudSave(data) {
-    if (!supabase) return;
-    try {
-      const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
-      const {error} = await supabase.storage.from(BUCKET_NAME).upload(STORE_FILE, blob, {upsert:true, cacheControl:"0"});
-      if (error) console.warn("Cloud save failed", error);
-    } catch(e) { console.warn("Cloud save error", e); }
-  }
-
-
-async function bootstrap() {
+  async function bootstrap() {
     try {
       bindEvents();
     } catch (error) {
@@ -1609,7 +1751,6 @@ async function bootstrap() {
       store = normalizeStore(fallback || store);
       revealApp();
       toast("已使用浏览器备用存储打开项目", "info");
-      initSupabase();
     }, 3500);
 
     try {
@@ -1626,30 +1767,23 @@ async function bootstrap() {
     } finally {
       window.clearTimeout(failSafeTimer);
       revealApp();
-      initSupabase();
-      if (supabase) {
-        const cloud = await cloudLoad();
-        if (cloud && cloud.projects) {
-          store = normalizeStore(cloud);
-          persistStore();
-          toast("已从云端同步", "success");
-        }
-      }
+      const cloudOpened = await openIncomingCloudShare();
+      if (!cloudOpened) openIncomingShareFromUrl();
     }
   }
 
   window.addEventListener("error", event => {
-    console.error("Design Board runtime error", event.error || event.message);
+    console.error("设计台板 runtime error", event.error || event.message);
     revealApp();
   });
 
   window.addEventListener("unhandledrejection", event => {
-    console.error("Design Board unhandled rejection", event.reason);
+    console.error("设计台板 unhandled rejection", event.reason);
     revealApp();
   });
 
   bootstrap().catch(error => {
-    console.error("Design Board 启动失败", error);
+    console.error("设计台板 启动失败", error);
     revealApp();
   });
 })();

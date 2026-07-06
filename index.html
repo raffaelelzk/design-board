@@ -740,8 +740,10 @@
     }
 
     .tool-card {
-      min-height: 344px;
+      min-height: 382px;
       position: relative;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
       border: 1px solid rgba(255,255,255,.94);
       border-radius: var(--radius-xl);
@@ -815,7 +817,7 @@
     }
 
     .tag-list {
-      margin-top: 18px;
+      margin-top: 22px;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -832,14 +834,13 @@
     }
 
     .tool-card-actions {
-      position: absolute;
-      left: 24px;
-      right: 24px;
-      bottom: 22px;
+      position: static;
       display: flex;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
       justify-content: space-between;
+      margin-top: auto;
+      padding-top: 30px;
     }
 
     .text-link {
@@ -1555,7 +1556,7 @@
         grid-template-columns: 1fr;
       }
 
-      .tool-card { min-height: 328px; }
+      .tool-card { min-height: 360px; }
 
       .search {
         width: 100%;
@@ -1626,7 +1627,7 @@
           <span class="hero-title-line gradient-text hero-title-strong"><span class="keep">清爽好用</span><span class="keep">的工作台</span></span>
         </h1>
         <p class="hero-copy">
-          从产品策划、项目排期到上市检查，把分散在表格、文档和聊天里的信息，整理成轻量、直观、随时可用的<span class="keep">小工具。</span>
+          从产品策划、项目排期到上市检查，把分散在表格、文档和聊天里的信息，整理成无需登录、打开即用、可用分享码传递的<span class="keep">小工具。</span>
         </p>
 
         <div class="hero-actions">
@@ -1635,9 +1636,9 @@
         </div>
 
         <div class="trust-row" aria-label="产品亮点">
-          <div class="trust-pill"><span>✓</span> 打开即用</div>
-          <div class="trust-pill"><span>✦</span> 适合创意团队</div>
-          <div class="trust-pill"><span>＋</span> 工具持续扩展</div>
+          <div class="trust-pill"><span>✓</span> 无需登录</div>
+          <div class="trust-pill"><span>⌁</span> 本地自动保存</div>
+          <div class="trust-pill"><span>↗</span> 分享码传递</div>
         </div>
       </div>
 
@@ -1713,7 +1714,7 @@
         </div>
 
         <div class="tool-controls">
-          <input class="search" id="searchInput" placeholder="搜索工具 / 标签，例如：提案、排期、风险" aria-label="搜索工具" />
+          <input class="search" id="searchInput" placeholder="搜索工具或标签" aria-label="搜索工具" />
         </div>
       </div>
 
@@ -1809,12 +1810,12 @@
 
       <div class="updates">
         <div class="update-row">
-          <div class="update-time">Now Available</div>
-          <div><strong>Design Board / Timeline Planner / Launch Checklist</strong><span>覆盖从方案整理、项目排期到上线检查的主要流程。</span></div>
+          <div class="update-time" >当前可用</div>
+          <div><strong>设计台板 / 排期规划 / 上线清单</strong><span>覆盖从方案整理、项目排期到上线检查的主要流程。</span></div>
           <span class="update-badge">已上线</span>
         </div>
         <div class="update-row">
-          <div class="update-time">Next Ideas</div>
+          <div class="update-time" >后续计划</div>
           <div><strong>灵感库、素材管理、预算估算</strong><span>帮助团队更早整理创意输入、资源文件和项目成本。</span></div>
           <span class="update-badge">规划中</span>
         </div>
@@ -1837,8 +1838,8 @@
     </section>
 
     <footer class="footer">
-      <span>Creative Toolbox · A lightweight workspace for creative projects</span>
-      <span>Built for planning, scheduling and launch readiness</span>
+      <span>Creative Toolbox · 面向创意项目的轻量工作台</span>
+      <span>聚焦策划、排期与上线准备</span>
     </footer>
   </main>
 
@@ -1854,7 +1855,7 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-head">
         <div>
-          <div class="modal-kicker" id="modalKicker">TOOL DETAIL</div>
+          <div class="modal-kicker" id="modalKicker">工具详情</div>
           <h3 id="modalTitle">工具详情</h3>
         </div>
         <button class="close" id="closeModal" type="button" aria-label="关闭">×</button>
@@ -1875,8 +1876,8 @@
       tools: [
         {
           id: "design",
-          name: "Design Board",
-          type: "Planning",
+          name: "设计台板",
+          type: "策划",
           icon: "▤",
           accent: "#536dff",
           accentSoft: "rgba(91,114,255,.13)",
@@ -1884,21 +1885,21 @@
           description: "把产品想法、文化叙事、工艺供应和提案内容放到同一个画板里，帮助你更快整理出完整方案。",
           tags: ["产品策划", "文化叙事", "提案输出"],
           keywords: "design board 产品策划 项目管理 提案输出 文化叙事 工艺供应 策划 提案",
-          url: "design-board.html?v=3",
+          url: "design-board.html?v=11",
           heroTitle: "整理一个产品方案",
-          heroDesc: "用 Design Board 组织想法与提案",
+          heroDesc: "用设计台板整理想法与提案",
           modalTitle: "适合：从想法到完整产品方案",
-          modalDesc: "当你有一个产品方向，但信息还散在脑子、文档和聊天记录里，可以先用 Design Board 把项目概览、产品地图、文化叙事和提案输出组织起来。",
+          modalDesc: "当你有一个产品方向，但信息还散在脑子、文档和聊天记录里，可以先用设计台板把项目概览、产品地图、文化叙事和提案输出组织起来。",
           points: [
             "适合文创产品、品牌周边、活动物料和主题商品策划。",
             "把创意语言转成更容易沟通的产品结构。",
-            "让提案内容更快进入可展示、可讨论、可迭代的状态。"
+            "可生成私有云端短链接，也可继续使用离线分享文件。"
           ]
         },
         {
           id: "timeline",
-          name: "Timeline Planner",
-          type: "Schedule",
+          name: "排期规划",
+          type: "排期",
           icon: "⌁",
           accent: "#16afa5",
           accentSoft: "rgba(32,212,197,.14)",
@@ -1906,21 +1907,21 @@
           description: "把设计、打样、生产、上线等节点排成清晰时间线，及时看见延期、依赖和负责人变化。",
           tags: ["项目排期", "任务节点", "风险提醒"],
           keywords: "timeline planner 项目排期 任务节点 风险提醒 负责人 时间线 排期 风险",
-          url: "timeline-planner.html?v=1",
+          url: "timeline-planner.html?v=11",
           heroTitle: "排出项目时间线",
-          heroDesc: "用 Timeline Planner 管理节点与风险",
+          heroDesc: "用排期规划管理节点与风险",
           modalTitle: "适合：把项目节奏排清楚",
-          modalDesc: "当项目开始进入执行阶段，可以用 Timeline Planner 把任务、负责人、开始日期、截止日期和风险提醒放在一条清晰时间线上。",
+          modalDesc: "当项目开始进入执行阶段，可以用排期规划把任务、负责人、开始日期、截止日期和风险提醒放在一条清晰时间线上。",
           points: [
             "适合设计、打样、生产、上线等多节点项目。",
             "帮助团队快速看见延期、依赖和负责人变动。",
-            "让项目进度从“靠记忆”变成“可视化管理”。"
+            "排期可通过私有短链接或分享文件传递，任务依赖关系会保留。"
           ]
         },
         {
           id: "launch",
-          name: "Launch Checklist",
-          type: "Launch",
+          name: "上线清单",
+          type: "上线",
           icon: "✓",
           accent: "#f09527",
           accentSoft: "rgba(255,180,92,.17)",
@@ -1928,21 +1929,21 @@
           description: "集中检查产品规格、效果图、生产资料和到店节点，让上市前的遗漏与风险更早被发现。",
           tags: ["产品交付", "资料检查", "上市准备"],
           keywords: "launch checklist 产品交付 资料检查 风险提醒 规格 效果图 到店 交付 风险",
-          url: "launch-checklist.html?v=1",
+          url: "launch-checklist.html?v=11",
           heroTitle: "检查上市准备",
-          heroDesc: "用 Launch Checklist 查漏补缺",
+          heroDesc: "用 上线 Checklist 查漏补缺",
           modalTitle: "适合：上市前查漏补缺",
-          modalDesc: "当产品接近上线或交付，可以用 Launch Checklist 集中检查规格、效果图、生产资料、样品确认和到店状态。",
+          modalDesc: "当产品接近上线或交付，可以用 上线 Checklist 集中检查规格、效果图、生产资料、样品确认和到店状态。",
           points: [
             "适合多 SKU、多供应商、多资料状态的交付检查。",
             "帮助提前发现图片缺失、规格不完整、产前样未确认等问题。",
-            "把上线前最容易遗漏的细节集中到一个清单里。"
+            "所有分享默认排除私密报价，需要时可主动选择包含。"
           ]
         },
         {
           id: "future",
-          name: "More Tools",
-          type: "Coming",
+          name: "更多工具",
+          type: "规划中",
           icon: "＋",
           accent: "#8a96aa",
           accentSoft: "rgba(15,23,42,.06)",
@@ -1951,7 +1952,7 @@
           tags: ["灵感", "素材", "预算", "复盘"],
           keywords: "即将上线 灵感 素材 预算 供应商 复盘 数据",
           url: "#updates",
-          isComing: true
+          is规划中: true
         }
       ]
     };
@@ -1968,7 +1969,7 @@
     };
 
     const renderHeroTools = () => {
-      $("#heroToolList").innerHTML = siteData.tools.filter(t => !t.isComing).map(tool => `
+      $("#heroToolList").innerHTML = siteData.tools.filter(t => !t.is规划中).map(tool => `
         <a class="mini-tool" href="${tool.url}" target="_blank" rel="noopener">
           <span class="mini-icon">${tool.icon}</span>
           <div><strong>${tool.heroTitle}</strong><span>${tool.heroDesc}</span></div>
@@ -1978,7 +1979,7 @@
     };
 
     const renderQuickTools = () => {
-      $("#quickToolList").innerHTML = siteData.tools.filter(t => !t.isComing).map(tool => `
+      $("#quickToolList").innerHTML = siteData.tools.filter(t => !t.is规划中).map(tool => `
         <a class="quick-item" href="${tool.url}" target="_blank" rel="noopener">
           <span>${tool.icon}</span><div><strong>${tool.heroTitle}</strong><small>${tool.name}</small></div>
         </a>
@@ -1987,7 +1988,7 @@
 
     const renderToolCards = () => {
       $("#toolGrid").innerHTML = siteData.tools.map(tool => `
-        <article class="tool-card ${tool.isComing ? "coming-card" : ""}"
+        <article class="tool-card ${tool.is规划中 ? "coming-card" : ""}"
           style="--accent:${tool.accent};--accent-soft:${tool.accentSoft}"
           data-tags="${tool.keywords}"
           data-title="${tool.name}">
@@ -2002,7 +2003,7 @@
           </div>
           <div class="tool-card-actions">
             ${
-              tool.isComing
+              tool.is规划中
                 ? `<button class="text-link" type="button" data-scroll="#updates">查看规划 <span>→</span></button>
                    <button class="btn btn-ghost" type="button" data-toast="更新提醒入口已预留">关注更新</button>`
                 : `<button class="text-link" type="button" data-modal="${tool.id}">了解适用场景 <span>→</span></button>
@@ -2094,12 +2095,12 @@
       design: `
         <div class="screen-row">
           <div class="stat-card">
-            <div class="stat-label">方案整理 <span>Planning</span></div>
+            <div class="stat-label">方案整理 <span>策划</span></div>
             <strong class="stat-value">清晰</strong>
             <div class="progress"><i style="--w:82%"></i></div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">提案准备 <span>Output</span></div>
+            <div class="stat-label">提案准备 <span>输出</span></div>
             <strong class="stat-value">更快</strong>
             <div class="progress"><i style="--w:74%"></i></div>
           </div>
@@ -2117,7 +2118,7 @@
       timeline: `
         <div class="screen-row">
           <div class="stat-card">
-            <div class="stat-label">项目节奏 <span>Schedule</span></div>
+            <div class="stat-label">项目节奏 <span>排期</span></div>
             <strong class="stat-value">可见</strong>
             <div class="progress"><i style="--w:86%"></i></div>
           </div>
@@ -2145,7 +2146,7 @@
             <div class="progress"><i style="--w:78%"></i></div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">上线准备 <span>Launch</span></div>
+            <div class="stat-label">上线准备 <span>上线</span></div>
             <strong class="stat-value">安心</strong>
             <div class="progress"><i style="--w:72%"></i></div>
           </div>

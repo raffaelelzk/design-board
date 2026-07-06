@@ -2,9 +2,9 @@
   "tools": [
     {
       "id": "design-board",
-      "name": "Design Board",
+      "name": "设计台板",
       "title": "设计台板",
-      "description": "整理产品、文化叙事、工艺供应信息，并输出完整提案。",
+      "description": "整理产品、文化叙事、工艺供应信息，并输出完整提案，可分享给同事继续查看或导入。",
       "icon": "▤",
       "tags": [
         "产品策划",
@@ -12,15 +12,15 @@
         "提案输出"
       ],
       "status": "live",
-      "url": "design-board.html?v=3",
+      "url": "design-board.html?v=11",
       "category": "核心工具",
       "sort": 1
     },
     {
       "id": "timeline-planner",
-      "name": "Timeline Planner",
+      "name": "排期规划",
       "title": "排期规划",
-      "description": "用甘特图管理产品开发周期，从需求确认到正式上线。",
+      "description": "用甘特图管理产品开发周期，从需求确认到正式上线，可分享给同事继续查看或导入。",
       "icon": "▥",
       "tags": [
         "时间管理",
@@ -28,15 +28,15 @@
         "排期"
       ],
       "status": "live",
-      "url": "timeline-planner.html?v=1",
+      "url": "timeline-planner.html?v=11",
       "category": "核心工具",
       "sort": 2
     },
     {
       "id": "launch-checklist",
-      "name": "Launch Checklist",
+      "name": "上线清单",
       "title": "上线清单",
-      "description": "管理产品规格、打样状态、供应商和上线进度。",
+      "description": "管理产品规格、打样状态、供应商和上线进度，可分享给同事继续查看或导入。",
       "icon": "▦",
       "tags": [
         "打样追踪",
@@ -44,7 +44,7 @@
         "上线管理"
       ],
       "status": "live",
-      "url": "launch-checklist.html?v=1",
+      "url": "launch-checklist.html?v=11",
       "category": "核心工具",
       "sort": 3
     }

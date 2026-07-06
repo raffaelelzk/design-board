@@ -1,12 +1,12 @@
 {
   "name": "Creative Toolbox",
-  "tagline": "把复杂的策划工作，放进简单的工具里。",
-  "description": "面向文创与产品策划的轻量工具箱。每个工具聚焦一项清晰任务。",
+  "tagline": "无需登录，把创意项目放进简单好用的工具里。",
+  "description": "面向文创与产品策划的本地优先工具箱，支持分享码传递项目内容。",
   "heroEyebrow": "CREATIVE WORKFLOW TOOLS",
   "logo": "▦",
   "footer": "Creative Toolbox · 简单、实用的策划工具",
   "seo": {
     "title": "Creative Toolbox",
-    "description": "面向文创与产品策划的轻量工具箱。"
+    "description": "面向文创与产品策划的本地优先工具箱，支持分享码传递项目内容。"
   }
 }

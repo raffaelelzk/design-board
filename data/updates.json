@@ -3,22 +3,32 @@
     {
       "date": "2026-07",
       "type": "live",
-      "text": "三个核心工具已上线：Design Board、Timeline Planner、Launch Checklist"
+      "text": "新增可选的 Supabase 私有云端短链接：匿名身份、RLS 隔离和私有图片存储"
+    },
+    {
+      "date": "2026-07",
+      "type": "live",
+      "text": "分享升级：小项目可生成二维码和分享链接，大项目可下载 .ctbshare 分享文件"
+    },
+    {
+      "date": "2026-07",
+      "type": "live",
+      "text": "三个核心工具已统一视觉，并支持无需登录的分享码导入与复制"
+    },
+    {
+      "date": "2026-07",
+      "type": "live",
+      "text": "项目默认保存在当前浏览器，不再匿名读写公共云端数据"
     },
     {
       "date": "2026-07",
       "type": "planned",
-      "text": "纹样库工具：管理和预览北大文创纹样素材"
+      "text": "纹样库工具：管理和预览文创纹样素材"
     },
     {
       "date": "2026-08",
       "type": "planned",
       "text": "更多策划工具持续扩展中"
-    },
-    {
-      "date": "2026-07",
-      "type": "live",
-      "text": "云端同步：同一项目支持多人协作编辑"
     }
   ]
 }

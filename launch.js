@@ -2,47 +2,8 @@
   "use strict";
 
   const STORAGE_KEY = "creative-toolbox-launch-checklist-v1";
-  /* === cloud sync === */
-  const SUPABASE_URL = "https://rvklyahwvczxtpqxdnpl.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj";
-  const BUCKET_NAME = "design-images";
-  let supabase = null;
-
-  function initSupabase() {
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-        db: { schema: "public" }
-      });
-    } catch (e) {
-      console.warn("Supabase init failed", e);
-    }
-  }
-
-  async function cloudLoad(fileName) {
-    if (!supabase) return null;
-    try {
-      const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
-      const res = await fetch(data.publicUrl + "?t=" + Date.now());
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) {
-      console.warn("Cloud load failed", e);
-      return null;
-    }
-  }
-
-  async function cloudSave(fileName, data) {
-    if (!supabase) return;
-    try {
-      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-      await supabase.storage.from(BUCKET_NAME).upload(fileName, blob, {
-        upsert: true,
-        cacheControl: "0"
-      });
-    } catch (e) {
-      console.warn("Cloud save error", e);
-    }
-  }
+  let projectNameEditing = false;
+  let projectNameOriginal = "";
 
   const STATUS_LABELS = {
     data: "资料整理中",
@@ -192,7 +153,7 @@
         activeProjectId: String(parsed.activeProjectId || "")
       };
     } catch (error) {
-      console.warn("Launch Checklist local data could not be read", error);
+      console.warn("上线清单 local data could not be read", error);
       return { version: 1, projects: [], activeProjectId: "" };
     }
   }
@@ -205,7 +166,6 @@
     const persist = () => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        cloudSave("launch-checklist-store.json", state);
         status.textContent = `已保存 · ${new Date().toLocaleTimeString("zh-CN", {
           hour: "2-digit",
           minute: "2-digit",
@@ -214,9 +174,9 @@
         status.className = "save-status saved";
       } catch (error) {
         console.error(error);
-        status.textContent = "保存失败，请导出备份";
+        status.textContent = "保存失败，请复制分享码备份";
         status.className = "save-status error";
-        toast("本地空间可能不足。请移除部分图片，或先导出 JSON 备份。", "error");
+        toast("本地空间可能不足。请移除部分图片，或先复制清单分享码。", "error");
       }
     };
 
@@ -236,6 +196,73 @@
   function touchProject(project) {
     project.updatedAt = new Date().toISOString();
     saveState();
+  }
+
+  function syncProjectNameEditingUi() {
+    const display = $("#projectNameDisplay");
+    const input = $("#projectNameInput");
+    const button = $("#renameProjectButton");
+    const project = currentProject();
+    if (!display || !input || !button) return;
+
+    display.hidden = projectNameEditing;
+    input.hidden = !projectNameEditing;
+    input.readOnly = !projectNameEditing;
+    input.classList.toggle("is-editing", projectNameEditing);
+    button.textContent = projectNameEditing ? "完成" : "重命名";
+    input.setAttribute("aria-readonly", String(!projectNameEditing));
+
+    if (project && !projectNameEditing) {
+      display.textContent = project.name;
+      display.title = `${project.name}｜双击可重命名`;
+    }
+  }
+
+  function startProjectNameEditing() {
+    const project = currentProject();
+    if (!project) return;
+    projectNameOriginal = project.name;
+    $("#projectNameInput").value = project.name;
+    projectNameEditing = true;
+    syncProjectNameEditingUi();
+    requestAnimationFrame(() => {
+      const input = $("#projectNameInput");
+      if (!input) return;
+      input.focus();
+      input.select();
+    });
+  }
+
+  function finishProjectNameEditing(commit = true) {
+    const input = $("#projectNameInput");
+    const project = currentProject();
+    if (!input || !project) return;
+
+    if (!commit) {
+      input.value = projectNameOriginal || project.name;
+      $("#projectNameDisplay").textContent = projectNameOriginal || project.name;
+      projectNameEditing = false;
+      syncProjectNameEditingUi();
+      return;
+    }
+
+    const nextName = input.value.trim();
+    if (!nextName) {
+      toast("清单名称不能为空，请输入名称", "error");
+      projectNameEditing = true;
+      syncProjectNameEditingUi();
+      requestAnimationFrame(() => input.focus());
+      return;
+    }
+
+    project.name = nextName;
+    input.value = nextName;
+    $("#projectNameDisplay").textContent = nextName;
+    projectNameEditing = false;
+    projectNameOriginal = "";
+    syncProjectNameEditingUi();
+    touchProject(project);
+    renderWorkspace();
   }
 
   function totalQuantity(product) {
@@ -468,7 +495,11 @@
     const metrics = projectMetrics(project);
     const products = filteredProducts(project);
 
-    $("#projectNameInput").value = project.name;
+    if (!projectNameEditing) {
+      $("#projectNameDisplay").textContent = project.name;
+      $("#projectNameInput").value = project.name;
+    }
+    syncProjectNameEditingUi();
     $("#projectMeta").textContent =
       `${project.products.length} 个产品 · 更新于 ${formatUpdated(project.updatedAt)}`;
     $("#summaryAll").textContent = metrics.all;
@@ -543,6 +574,8 @@
   }
 
   function showDashboard() {
+    projectNameEditing = false;
+    projectNameOriginal = "";
     state.activeProjectId = "";
     riskOnlyFilter = false;
     saveState(true);
@@ -878,27 +911,233 @@
     return output;
   }
 
-  function exportJson() {
+  async function generateShareProjectCode() {
     const project = currentProject();
     if (!project) return;
-    const includePrivate = $("#includePrivateExportInput").checked;
-    const payload = {
-      type: "creative-toolbox-launch-checklist",
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      includesPrivateCostQuote: includePrivate,
-      project: {
-        ...project,
-        products: project.products.map(product => exportableProduct(product, includePrivate)),
-        externalRefs: project.externalRefs || {}
-      }
-    };
-    downloadFile(
-      `${safeFilename(project.name)}-launch-checklist.json`,
-      JSON.stringify(payload, null, 2),
-      "application/json;charset=utf-8"
-    );
-    toast(includePrivate ? "JSON 已导出，并包含私密报价" : "JSON 已导出，不包含私密报价", "success");
+    const includePrivate = $("#includePrivateShareInput").checked;
+    const output = $("#shareProjectCodeOutput");
+    const size = $("#shareProjectCodeSize");
+    const privacy = $("#shareProjectPrivacyMeta");
+    const qrStatus = $("#shareProjectQrStatus");
+    output.value = "";
+    size.textContent = "正在生成…";
+    privacy.textContent = includePrivate ? "包含私密报价" : "不含私密报价";
+    qrStatus.textContent = "正在准备二维码";
+
+    try {
+      const payload = {
+        type: "creative-toolbox-launch-checklist",
+        version: 3,
+        sharedAt: new Date().toISOString(),
+        includesPrivateCostQuote: includePrivate,
+        project: {
+          ...project,
+          products: project.products.map(product => exportableProduct(product, includePrivate)),
+          externalRefs: project.externalRefs || {}
+        }
+      };
+      const code = await window.CreativeShare.encode(payload);
+      output.value = code;
+      size.textContent = window.CreativeShare.sizeLabel(code);
+      const qr = window.CreativeShare.renderQr(
+        $("#shareProjectQrCanvas"),
+        $("#shareProjectQrFallback"),
+        code,
+        { size: 300 }
+      );
+      qrStatus.textContent = qr.available ? "二维码可直接扫码" : "二维码容量不足";
+    } catch (error) {
+      console.error(error);
+      size.textContent = "生成失败";
+      qrStatus.textContent = "无法生成";
+      toast(error.message || "分享内容生成失败", "error");
+    }
+  }
+
+  function openShareProjectModal() {
+    $("#includePrivateShareInput").checked = false;
+    resetCloudShareUi();
+    $("#shareProjectModal").hidden = false;
+    generateShareProjectCode();
+  }
+
+  async function copyShareProjectCode() {
+    const code = $("#shareProjectCodeOutput").value.trim();
+    if (!code) return;
+    try {
+      await window.CreativeShare.copy(window.CreativeShare.makeLink(code));
+      toast("分享链接已复制", "success");
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  }
+
+  function downloadShareProjectFile() {
+    const project = currentProject();
+    const code = $("#shareProjectCodeOutput").value.trim();
+    if (!project || !code) return;
+    window.CreativeShare.download(code, `${safeFilename(project.name)}-checklist.ctbshare`);
+    toast("分享文件已下载", "success");
+  }
+
+  async function handleImportShareFile(file) {
+    try {
+      const code = await window.CreativeShare.readFile(file);
+      $("#importShareCodeInput").value = code;
+      await importShareCode();
+    } catch (error) {
+      toast(error.message, "error");
+    } finally {
+      $("#importShareFileInput").value = "";
+    }
+  }
+
+  function openIncomingShareFromUrl() {
+    const code = window.CreativeShare.codeFromLocation();
+    if (!code) return;
+    window.CreativeShare.clearLocationCode();
+    $("#importShareCodeInput").value = code;
+    $("#importShareModal").hidden = false;
+  }
+
+  function resetCloudShareUi() {
+    const ready = Boolean(window.CreativeCloud?.configured());
+    const status = $("#cloudShareStatus");
+    const generateButton = $("#generateCloudShareButton");
+    $("#cloudShareResult").hidden = true;
+    $("#cloudShareOutput").value = "";
+    $("#copyCloudShareButton").hidden = true;
+    generateButton.disabled = !ready;
+    generateButton.textContent = ready ? "生成云端短链接" : "配置后可用";
+    status.textContent = ready ? "已连接" : "未配置";
+    status.className = `cloud-share-status ${ready ? "ready" : "error"}`;
+    if (!ready) $("#cloudShareNote").textContent = window.CreativeCloud?.configurationMessage?.() || "云端分享未配置。";
+  }
+
+  async function generateCloudProjectShare() {
+    const project = currentProject();
+    if (!project || !window.CreativeCloud?.configured()) {
+      toast(window.CreativeCloud?.configurationMessage?.() || "云端分享未配置", "error");
+      return;
+    }
+    const includePrivate = $("#includePrivateShareInput").checked;
+    const button = $("#generateCloudShareButton");
+    const status = $("#cloudShareStatus");
+    button.disabled = true;
+    button.textContent = "正在上传…";
+    status.textContent = "上传中";
+    status.className = "cloud-share-status";
+
+    try {
+      const result = await window.CreativeCloud.createShare({
+        toolType: "creative-toolbox-launch-checklist",
+        name: project.name,
+        payload: {
+          type: "creative-toolbox-launch-checklist",
+          version: 4,
+          sharedAt: new Date().toISOString(),
+          includesPrivateCostQuote: includePrivate,
+          project: {
+            ...project,
+            products: project.products.map(product => exportableProduct(product, includePrivate)),
+            externalRefs: project.externalRefs || {}
+          }
+        },
+        progress: message => {
+          status.textContent = message.replace(/^正在/, "").replace(/…$/, "");
+        }
+      });
+      $("#cloudShareOutput").value = result.link;
+      $("#cloudShareResult").hidden = false;
+      $("#copyCloudShareButton").hidden = false;
+      $("#cloudShareNote").textContent =
+        `已上传 ${result.assetCount} 个文件；${includePrivate ? "包含私密报价。" : "不含私密报价。"}对方会导入本地副本。`;
+      status.textContent = "短链接已生成";
+      status.className = "cloud-share-status ready";
+      button.textContent = "重新生成";
+      toast("云端短链接已生成", "success");
+    } catch (error) {
+      console.error(error);
+      status.textContent = "生成失败";
+      status.className = "cloud-share-status error";
+      button.textContent = "重试";
+      toast(`云端分享失败：${error.message}`, "error");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function copyCloudProjectShare() {
+    const link = $("#cloudShareOutput").value.trim();
+    if (!link) return;
+    try {
+      await window.CreativeShare.copy(link);
+      toast("云端短链接已复制", "success");
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  }
+
+  async function importCloudChecklist(payload) {
+    const sourceProject = payload?.project || payload;
+    if (!sourceProject || typeof sourceProject !== "object" || !Array.isArray(sourceProject.products)) {
+      throw new Error("云端分享中没有有效产品清单。");
+    }
+    const project = normalizeProject({
+      ...sourceProject,
+      id: uid("checklist"),
+      name: sourceProject.name || "云端导入清单",
+      products: sourceProject.products.map(product => ({
+        ...product,
+        id: uid("product"),
+        externalRefs: product.externalRefs || {}
+      })),
+      externalRefs: sourceProject.externalRefs || {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    state.projects.unshift(project);
+    state.activeProjectId = project.id;
+    saveState(true);
+    showWorkspace();
+  }
+
+  async function openIncomingCloudShare() {
+    if (!window.CreativeCloud?.tokenFromLocation?.()) return false;
+    window.CreativeCloud.showOverlay("正在连接云端…");
+    try {
+      const shared = await window.CreativeCloud.consumeFromLocation(
+        "creative-toolbox-launch-checklist",
+        message => window.CreativeCloud.updateOverlay(message)
+      );
+      if (!shared) return false;
+      window.CreativeCloud.updateOverlay("正在创建本地副本…");
+      await importCloudChecklist(shared.payload);
+      toast(shared.payload?.includesPrivateCostQuote
+        ? "云端清单已导入，包含私密报价"
+        : "云端清单已导入为本地副本", "success");
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast(`云端链接读取失败：${error.message}`, "error");
+      return false;
+    } finally {
+      window.CreativeCloud.hideOverlay();
+    }
+  }
+
+  function openImportShareModal() {
+    $("#importShareCodeInput").value = "";
+    $("#importShareModal").hidden = false;
+    setTimeout(() => $("#importShareCodeInput").focus(), 60);
+  }
+
+  function closeImportShareModal() {
+    $("#importShareModal").hidden = true;
+  }
+
+  function closeShareProjectModal() {
+    $("#shareProjectModal").hidden = true;
   }
 
   function csvEscape(value) {
@@ -1022,41 +1261,48 @@
     printCleanupTimer = setTimeout(removePrintReport, 1200);
   }
 
-  function importProject(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        const sourceProject = data.project || data;
-        if (!sourceProject || typeof sourceProject !== "object" || !Array.isArray(sourceProject.products)) {
-          throw new Error("文件不包含有效产品清单");
-        }
-        const project = normalizeProject({
-          ...sourceProject,
-          id: uid("checklist"),
-          name: sourceProject.name || "导入的产品清单",
-          products: sourceProject.products.map(product => ({
-            ...product,
-            id: uid("product"),
-            externalRefs: product.externalRefs || {}
-          })),
-          externalRefs: sourceProject.externalRefs || {},
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
-        state.projects.unshift(project);
-        state.activeProjectId = project.id;
-        saveState(true);
-        showWorkspace();
-        toast("产品交付清单已导入", "success");
-      } catch (error) {
-        console.error(error);
-        toast("无法导入。请确认文件来自 Launch Checklist。", "error");
-      } finally {
-        $("#importFileInput").value = "";
+  async function importShareCode() {
+    const button = $("#importShareCodeButton");
+    const code = $("#importShareCodeInput").value.trim();
+    if (!code) {
+      toast("请先粘贴分享码", "error");
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "正在导入…";
+    try {
+      const data = await window.CreativeShare.decode(code);
+      const sourceProject = data.project || data;
+      if (!sourceProject || typeof sourceProject !== "object" || !Array.isArray(sourceProject.products)) {
+        throw new Error("分享码中没有有效产品清单");
       }
-    };
-    reader.readAsText(file);
+      const project = normalizeProject({
+        ...sourceProject,
+        id: uid("checklist"),
+        name: sourceProject.name || "导入的产品清单",
+        products: sourceProject.products.map(product => ({
+          ...product,
+          id: uid("product"),
+          externalRefs: product.externalRefs || {}
+        })),
+        externalRefs: sourceProject.externalRefs || {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      state.projects.unshift(project);
+      state.activeProjectId = project.id;
+      saveState(true);
+      closeImportShareModal();
+      showWorkspace();
+      toast(data.includesPrivateCostQuote ? "清单已导入，包含私密报价" : "清单分享码已导入", "success");
+    } catch (error) {
+      console.error(error);
+      toast(`无法导入：${error.message}`, "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "导入清单";
+    }
   }
 
   function positionExportMenu() {
@@ -1099,6 +1345,10 @@
 
     $("#productForm").addEventListener("submit", saveProduct);
     $("#deleteProductButton").addEventListener("click", deleteCurrentProduct);
+    $("#renameProjectButton").addEventListener("click", () => {
+      if (projectNameEditing) finishProjectNameEditing(true);
+      else startProjectNameEditing();
+    });
     $("#duplicateProjectButton").addEventListener("click", duplicateProject);
 
     $("#dashboardSearchInput").addEventListener("input", renderDashboard);
@@ -1119,10 +1369,30 @@
     });
 
     $("#projectNameInput").addEventListener("input", event => {
-      const project = currentProject();
-      if (!project) return;
-      project.name = event.target.value.trim() || "未命名清单";
-      touchProject(project);
+      if (!projectNameEditing || event.target.readOnly) return;
+      // 编辑过程中只更新输入框，确认后再保存。
+    });
+    $("#projectNameDisplay").addEventListener("dblclick", startProjectNameEditing);
+    $("#projectNameDisplay").addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        startProjectNameEditing();
+      }
+    });
+    $("#projectNameInput").addEventListener("keydown", event => {
+      if (!projectNameEditing) return;
+      if (event.key === "Enter") {
+        event.preventDefault();
+        finishProjectNameEditing(true);
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishProjectNameEditing(false);
+      }
+    });
+    $("#projectNameInput").addEventListener("blur", event => {
+      if (event.relatedTarget === $("#renameProjectButton")) return;
+      if (projectNameEditing) finishProjectNameEditing(true);
     });
 
     $("#imagePreviewButton").addEventListener("click", () => $("#productImageInput").click());
@@ -1153,11 +1423,20 @@
       );
     });
 
-    $("#importProjectButton").addEventListener("click", () => $("#importFileInput").click());
-    $("#importFileInput").addEventListener("change", event => {
-      const file = event.target.files?.[0];
-      if (file) importProject(file);
+    $("#importProjectButton").addEventListener("click", openImportShareModal);
+    $("#importShareCodeButton").addEventListener("click", importShareCode);
+    $("#importShareFileInput").addEventListener("change", event => handleImportShareFile(event.target.files?.[0]));
+    $("#shareProjectButton").addEventListener("click", openShareProjectModal);
+    $("#copyShareProjectCodeButton").addEventListener("click", copyShareProjectCode);
+    $("#downloadShareProjectFileButton").addEventListener("click", downloadShareProjectFile);
+    $("#generateCloudShareButton").addEventListener("click", generateCloudProjectShare);
+    $("#copyCloudShareButton").addEventListener("click", copyCloudProjectShare);
+    $("#includePrivateShareInput").addEventListener("change", () => {
+      generateShareProjectCode();
+      resetCloudShareUi();
     });
+    $$('[data-action="close-import-share"]').forEach(button => button.addEventListener("click", closeImportShareModal));
+    $$('[data-action="close-share-project"]').forEach(button => button.addEventListener("click", closeShareProjectModal));
 
     $("#exportMenuButton").addEventListener("click", event => {
       event.stopPropagation();
@@ -1169,7 +1448,6 @@
     $$("[data-export]").forEach(button => {
       button.addEventListener("click", () => {
         $("#exportMenu").hidden = true;
-        if (button.dataset.export === "json") exportJson();
         if (button.dataset.export === "csv") exportCsv();
         if (button.dataset.export === "print") printReport();
       });
@@ -1187,11 +1465,19 @@
     $("#productModal").addEventListener("click", event => {
       if (event.target === $("#productModal")) closeProductModal();
     });
+    $("#importShareModal").addEventListener("click", event => {
+      if (event.target === $("#importShareModal")) closeImportShareModal();
+    });
+    $("#shareProjectModal").addEventListener("click", event => {
+      if (event.target === $("#shareProjectModal")) closeShareProjectModal();
+    });
 
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") {
         closeCreateProjectModal();
         closeProductModal();
+        closeImportShareModal();
+        closeShareProjectModal();
         $("#exportMenu").hidden = true;
       }
     });
@@ -1199,13 +1485,8 @@
     window.addEventListener("afterprint", removePrintReport);
   }
 
-  initSupabase();
-  cloudLoad("launch-checklist-store.json").then(cloud => {
-    if (cloud && cloud.version && (!state.version || cloud.version >= state.version)) {
-      state = cloud;
-      saveState(true);
-    }
-  });
   bindEvents();
   renderDashboard(); // always show project list on load
+  if (window.CreativeCloud?.tokenFromLocation?.()) openIncomingCloudShare();
+  else openIncomingShareFromUrl();
 })();
