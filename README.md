@@ -122,3 +122,43 @@ The toolbox now includes an independent product production and delivery checklis
 - No visible cross-tool synchronization
 
 Open `launch-checklist.html` directly, or enter it from the homepage.
+
+## Cloud Workspace setup
+
+Creative Toolbox v2.4 adds optional Supabase cloud workspaces while keeping GitHub Pages as the static host.
+
+### Setup
+
+1. Create a Supabase project.
+2. In Supabase Dashboard, enable Anonymous sign-ins.
+3. Open SQL Editor and run `supabase-schema.sql`.
+4. Open `cloud-config.js` and paste:
+   - `supabaseUrl`
+   - `supabaseAnonKey`
+5. Upload all files to the GitHub repository root and deploy with GitHub Pages.
+
+Do not place service_role keys, database passwords, or other secrets in GitHub Pages.
+
+### Sharing model
+
+- New workspace: creates an anonymous owner and two share tokens.
+- Edit link: lets another anonymous user join as editor.
+- Read-only link: lets another anonymous user join as viewer.
+- Documents are stored as JSON payloads in Supabase.
+- The three tools remain independent documents:
+  - `design_board`
+  - `timeline_planner`
+  - `launch_checklist`
+
+### Sync states
+
+The UI can show:
+
+- 云端已连接
+- 正在同步……
+- 已同步 HH:MM
+- 同步失败，点击重试
+- 离线，修改暂存中
+- 发现远程更新
+
+If Supabase is not configured or connection fails, tools fall back to local browser mode.

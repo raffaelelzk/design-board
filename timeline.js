@@ -2,48 +2,6 @@
   "use strict";
 
   const STORAGE_KEY = "creative-toolbox-timeline-planner-v1";
-  /* === cloud sync === */
-  const SUPABASE_URL = "https://rvklyahwvczxtpqxdnpl.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj";
-  const BUCKET_NAME = "design-images";
-  let supabase = null;
-
-  function initSupabase() {
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-        db: { schema: "public" }
-      });
-    } catch (e) {
-      console.warn("Supabase init failed", e);
-    }
-  }
-
-  async function cloudLoad(fileName) {
-    if (!supabase) return null;
-    try {
-      const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
-      const res = await fetch(data.publicUrl + "?t=" + Date.now());
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) {
-      console.warn("Cloud load failed", e);
-      return null;
-    }
-  }
-
-  async function cloudSave(fileName, data) {
-    if (!supabase) return;
-    try {
-      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-      await supabase.storage.from(BUCKET_NAME).upload(fileName, blob, {
-        upsert: true,
-        cacheControl: "0"
-      });
-    } catch (e) {
-      console.warn("Cloud save error", e);
-    }
-  }
-
   const DAY_WIDTH = 36;
   const STATUS_LABELS = {
     "not-started": "未开始",
@@ -223,18 +181,56 @@
     }
   }
 
+  function normalizeStateSnapshot(value) {
+    return {
+      version: 1,
+      projects: Array.isArray(value?.projects) ? value.projects.map(normalizeProject) : [],
+      activeProjectId: String(value?.activeProjectId || "")
+    };
+  }
+
+  async function initializeCloud() {
+    if (!window.CloudWorkspace) return;
+    const result = await window.CloudWorkspace.boot({
+      toolType: "timeline_planner",
+      title: "Timeline Planner",
+      defaultPayload: state,
+      getPayload: () => state,
+      setPayload: payload => {
+        state = normalizeStateSnapshot(payload || state);
+      },
+      onRemoteUpdate: payload => {
+        state = normalizeStateSnapshot(payload || state);
+        if (state.activeProjectId && currentProject()) renderWorkspace();
+        else renderDashboard();
+        toast("发现远程更新，已刷新当前排期");
+      }
+    });
+    if (result?.payload) {
+      state = normalizeStateSnapshot(result.payload);
+    }
+  }
+
   function saveState(immediate = false) {
-    $("#saveStatus").textContent = "正在保存…";
+    if (window.CloudWorkspace?.isReadOnly?.()) {
+      $("#saveStatus").textContent = "只读链接，无法保存修改";
+      $("#saveStatus").className = "save-status error";
+      return;
+    }
+    $("#saveStatus").textContent = window.CloudWorkspace?.currentWorkspace?.().workspaceId ? "正在同步……" : "正在保存…";
     $("#saveStatus").className = "save-status saving";
 
     const persist = () => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        cloudSave("timeline-planner-store.json", state);
-        $("#saveStatus").textContent = `已保存 · ${new Date().toLocaleTimeString("zh-CN", {
-          hour: "2-digit", minute: "2-digit", hour12: false
-        })}`;
-        $("#saveStatus").className = "save-status saved";
+        if (window.CloudWorkspace?.currentWorkspace?.().workspaceId) {
+          window.CloudWorkspace.queueSave(state);
+        } else {
+          $("#saveStatus").textContent = `已保存到本机 · ${new Date().toLocaleTimeString("zh-CN", {
+            hour: "2-digit", minute: "2-digit", hour12: false
+          })}`;
+          $("#saveStatus").className = "save-status saved";
+        }
       } catch (error) {
         console.error(error);
         $("#saveStatus").textContent = "保存失败，请导出备份";
@@ -1034,13 +1030,28 @@
     });
   }
 
-  initSupabase();
-  cloudLoad("timeline-planner-store.json").then(cloud => {
-    if (cloud && cloud.version && (!state.version || cloud.version >= state.version)) {
-      state = cloud;
-      saveState(true);
+  async function bootstrap() {
+    bindEvents();
+
+    const failSafe = setTimeout(() => {
+      if ($("#dashboardView").hidden && $("#workspaceView").hidden) {
+        $("#dashboardView").hidden = false;
+        renderDashboard();
+        toast("加载超时，已进入本机模式", "error");
+      }
+    }, 8000);
+
+    try {
+      await initializeCloud();
+    } catch (error) {
+      console.error("Cloud initialization failed", error);
+      toast("云端连接失败，已进入本机模式", "error");
+    } finally {
+      clearTimeout(failSafe);
+      if (state.activeProjectId && currentProject()) showWorkspace();
+      else renderDashboard();
     }
-  });
-  bindEvents();
-  renderDashboard(); // always show project list on load
+  }
+
+  bootstrap();
 })();
