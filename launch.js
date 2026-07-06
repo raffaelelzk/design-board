@@ -2,48 +2,6 @@
   "use strict";
 
   const STORAGE_KEY = "creative-toolbox-launch-checklist-v1";
-  /* === cloud sync === */
-  const SUPABASE_URL = "https://rvklyahwvczxtpqxdnpl.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj";
-  const BUCKET_NAME = "design-images";
-  let supabase = null;
-
-  function initSupabase() {
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-        db: { schema: "public" }
-      });
-    } catch (e) {
-      console.warn("Supabase init failed", e);
-    }
-  }
-
-  async function cloudLoad(fileName) {
-    if (!supabase) return null;
-    try {
-      const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
-      const res = await fetch(data.publicUrl + "?t=" + Date.now());
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) {
-      console.warn("Cloud load failed", e);
-      return null;
-    }
-  }
-
-  async function cloudSave(fileName, data) {
-    if (!supabase) return;
-    try {
-      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-      await supabase.storage.from(BUCKET_NAME).upload(fileName, blob, {
-        upsert: true,
-        cacheControl: "0"
-      });
-    } catch (e) {
-      console.warn("Cloud save error", e);
-    }
-  }
-
   const STATUS_LABELS = {
     data: "资料整理中",
     sampling: "等待打样",
@@ -197,21 +155,94 @@
     }
   }
 
+  function normalizeStateSnapshot(value) {
+    return {
+      version: 1,
+      projects: Array.isArray(value?.projects) ? value.projects.map(normalizeProject) : [],
+      activeProjectId: String(value?.activeProjectId || "")
+    };
+  }
+
+  // 成本报价 privateCostQuote 仅存本机，绝不上云
+  function stripPrivate(value) {
+    const copy = normalizeStateSnapshot(value);
+    copy.projects = copy.projects.map(project => ({
+      ...project,
+      products: (project.products || []).map(product => {
+        const p = { ...product };
+        delete p.privateCostQuote;
+        return p;
+      })
+    }));
+    return copy;
+  }
+  // 应用云端数据时，用本机报价按产品 ID 回填，避免覆盖丢失本机私密报价
+  function mergeLocalPrivate(remote, local) {
+    const map = {};
+    (local?.projects || []).forEach(p => (p.products || []).forEach(pr => { if (pr.privateCostQuote) map[pr.id] = pr.privateCostQuote; }));
+    const merged = normalizeStateSnapshot(remote);
+    merged.projects.forEach(p => (p.products || []).forEach(pr => { if (map[pr.id]) pr.privateCostQuote = map[pr.id]; }));
+    return merged;
+  }
+
+  async function initializeCloud() {
+    if (!window.CloudWorkspace) return;
+    const localPayload = stripPrivate(state); // 首次建档也不带成本报价
+
+    const result = await window.CloudWorkspace.boot({
+      toolType: "launch_checklist",
+      title: "Launch Checklist",
+      defaultPayload: localPayload,
+      getPayload: () => stripPrivate(state),
+      setPayload: payload => {
+        state = mergeLocalPrivate(payload || state, state);
+      },
+      onRemoteUpdate: payload => {
+        state = mergeLocalPrivate(payload || state, state);
+        if (state.activeProjectId && currentProject()) renderWorkspace();
+        else renderDashboard();
+        toast("发现远程更新，已刷新当前清单");
+      }
+    });
+
+    if (result?.payload) {
+      state = mergeLocalPrivate(result.payload, state);
+    }
+  }
+
   function saveState(immediate = false) {
     const status = $("#saveStatus");
-    status.textContent = "正在保存…";
+    if (window.CloudWorkspace?.isReadOnly?.()) {
+      status.textContent = "只读链接，无法保存修改";
+      status.className = "save-status error";
+      return;
+    }
+    status.textContent = window.CloudWorkspace?.currentWorkspace?.().workspaceId ? "正在同步……" : "正在保存…";
     status.className = "save-status saving";
 
     const persist = () => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        cloudSave("launch-checklist-store.json", state);
-        status.textContent = `已保存 · ${new Date().toLocaleTimeString("zh-CN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        })}`;
-        status.className = "save-status saved";
+        if (window.CloudWorkspace?.currentWorkspace?.().workspaceId) {
+          window.CloudWorkspace.queueSave(normalizeStateSnapshot({
+            ...state,
+            projects: state.projects.map(project => ({
+              ...project,
+              products: project.products.map(product => {
+                const copy = { ...product };
+                delete copy.privateCostQuote;
+                return copy;
+              })
+            }))
+          }));
+        } else {
+          status.textContent = `已保存到本机 · ${new Date().toLocaleTimeString("zh-CN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+          })}`;
+          status.className = "save-status saved";
+        }
       } catch (error) {
         console.error(error);
         status.textContent = "保存失败，请导出备份";
@@ -1199,13 +1230,28 @@
     window.addEventListener("afterprint", removePrintReport);
   }
 
-  initSupabase();
-  cloudLoad("launch-checklist-store.json").then(cloud => {
-    if (cloud && cloud.version && (!state.version || cloud.version >= state.version)) {
-      state = cloud;
-      saveState(true);
+  async function bootstrap() {
+    bindEvents();
+
+    const failSafe = setTimeout(() => {
+      if ($("#dashboardView").hidden && $("#workspaceView").hidden) {
+        $("#dashboardView").hidden = false;
+        renderDashboard();
+        toast("加载超时，已进入本机模式", "error");
+      }
+    }, 8000);
+
+    try {
+      await initializeCloud();
+    } catch (error) {
+      console.error("Cloud initialization failed", error);
+      toast("云端连接失败，已进入本机模式", "error");
+    } finally {
+      clearTimeout(failSafe);
+      if (state.activeProjectId && currentProject()) showWorkspace();
+      else renderDashboard();
     }
-  });
-  bindEvents();
-  renderDashboard(); // always show project list on load
+  }
+
+  bootstrap();
 })();

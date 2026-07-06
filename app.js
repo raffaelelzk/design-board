@@ -338,7 +338,11 @@
   }
 
   function queueSave() {
-    if (isReadOnly || !activeProject) return;
+    if ((isReadOnly || window.CloudWorkspace?.isReadOnly?.()) && activeProject) {
+      setSaveStatus("只读链接，无法保存修改", "error");
+      return;
+    }
+    if (!activeProject) return;
     if (!storageAvailable) {
       pendingSave = true;
       setSaveStatus("本地保存不可用，请导出备份", "error");
@@ -346,21 +350,12 @@
     }
     activeProject.updatedAt = Date.now();
     pendingSave = true;
-    setSaveStatus("有未保存修改", "saving");
+    setSaveStatus(window.CloudWorkspace?.currentWorkspace?.().workspaceId ? "正在同步……" : "有未保存修改", "saving");
     clearTimeout(saveTimer);
     saveTimer = setTimeout(persistStore, SAVE_DELAY);
   }
 
   async function persistStore() {
-    const toSave = JSON.parse(JSON.stringify(store));
-    if (storageMode === "indexeddb" && database) {
-      idbPut(APP_KEY, toSave).catch(() => {});
-    }
-    localStoragePut(APP_KEY, toSave);
-    if (supabase) cloudSave(toSave);
-  }
-
-  function _old_persistStore {
     if (isReadOnly || !pendingSave || saveInProgress) return;
     if (!storageAvailable) {
       setSaveStatus("本地保存不可用，请导出备份", "error");
@@ -379,8 +374,12 @@
       } else {
         localStoragePut(APP_KEY, store);
       }
-      const storageLabel = storageMode === "indexeddb" ? "本机" : "浏览器";
-      setSaveStatus(`已保存到${storageLabel} · ${new Date().toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })}`, "saved");
+      if (window.CloudWorkspace?.currentWorkspace?.().workspaceId) {
+        window.CloudWorkspace.queueSave(store);
+      } else {
+        const storageLabel = storageMode === "indexeddb" ? "本机" : "浏览器";
+        setSaveStatus(`已保存到${storageLabel} · ${new Date().toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" })}`, "saved");
+      }
     } catch (error) {
       console.error(error);
       pendingSave = true;
@@ -394,7 +393,10 @@
   }
 
   async function saveStoreImmediately() {
-    if (isReadOnly) return;
+    if (isReadOnly || window.CloudWorkspace?.isReadOnly?.()) {
+      setSaveStatus("只读链接，无法保存修改", "error");
+      return;
+    }
     pendingSave = true;
     clearTimeout(saveTimer);
     await persistStore();
@@ -1542,9 +1544,41 @@
     });
   }
 
-  window.revealAppFallback=window.setTimeout(function(){var l=document.getElementById("loading"),d=document.getElementById("dashboard");if(l)l.hidden=true;if(d)d.hidden=false},8000);
 
-function revealApp() {
+  async function initializeCloud() {
+    if (!window.CloudWorkspace) return;
+    const result = await window.CloudWorkspace.boot({
+      toolType: "design_board",
+      title: "Design Board",
+      defaultPayload: store,
+      getPayload: () => store,
+      setPayload: payload => {
+        store = normalizeStore(payload || store);
+        activeProjectId = store.activeProjectId;
+        activeProject = activeProjectId ? store.projects[activeProjectId] : null;
+      },
+      onRemoteUpdate: payload => {
+        store = normalizeStore(payload || store);
+        activeProjectId = store.activeProjectId;
+        activeProject = activeProjectId ? store.projects[activeProjectId] : null;
+        if (activeProject) {
+          renderWorkspace();
+        } else {
+          renderDashboard();
+        }
+        toast("发现远程更新，已刷新 Design Board");
+      }
+    });
+
+    if (result?.payload) {
+      store = normalizeStore(result.payload);
+      activeProjectId = store.activeProjectId;
+      activeProject = activeProjectId ? store.projects[activeProjectId] : null;
+    }
+    isReadOnly = window.CloudWorkspace?.isReadOnly?.() || false;
+  }
+
+  function revealApp() {
     if (appRevealed) return;
     appRevealed = true;
     const loading = $("#loading");
@@ -1554,43 +1588,7 @@ function revealApp() {
     renderDashboard();
   }
 
-  (function(){setTimeout(function(){if(typeof revealApp==="function"&&!appRevealed)revealApp()},6000)})();
-
-
-  const SUPABASE_URL = "https://rvklyahwvczxtpqxdnpl.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj";
-  const BUCKET_NAME = "design-images";
-  const STORE_FILE = "system_store.json";
-  let supabase = null;
-
-  function initSupabase() {
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {db:{schema:"public"}});
-      return true;
-    } catch(e) { console.warn("Supabase init failed", e); return false; }
-  }
-
-  async function cloudLoad() {
-    if (!supabase) return null;
-    try {
-      const {data} = supabase.storage.from(BUCKET_NAME).getPublicUrl(STORE_FILE);
-      const res = await fetch(data.publicUrl + "?t=" + Date.now());
-      if (!res.ok) return null;
-      return await res.json();
-    } catch(e) { console.warn("Cloud load failed", e); return null; }
-  }
-
-  async function cloudSave(data) {
-    if (!supabase) return;
-    try {
-      const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
-      const {error} = await supabase.storage.from(BUCKET_NAME).upload(STORE_FILE, blob, {upsert:true, cacheControl:"0"});
-      if (error) console.warn("Cloud save failed", error);
-    } catch(e) { console.warn("Cloud save error", e); }
-  }
-
-
-async function bootstrap() {
+  async function bootstrap() {
     try {
       bindEvents();
     } catch (error) {
@@ -1609,32 +1607,29 @@ async function bootstrap() {
       store = normalizeStore(fallback || store);
       revealApp();
       toast("已使用浏览器备用存储打开项目", "info");
-      initSupabase();
-    }, 3500);
+    }, 8000);
 
     try {
       database = await withTimeout(openDatabase(), 2200, "打开本地数据库超时");
       const loaded = await withTimeout(idbGet(APP_KEY), 1800, "读取本地数据库超时");
       storageMode = "indexeddb";
       store = normalizeStore(loaded || store);
+      await initializeCloud();
     } catch (error) {
       console.warn("IndexedDB 不可用，已自动降级", error);
       storageMode = "localstorage";
       database = null;
       const fallback = localStorageGet(APP_KEY);
       store = normalizeStore(fallback || store);
+      try {
+        await initializeCloud();
+      } catch (cloudError) {
+        console.error("Cloud initialization failed", cloudError);
+        toast("云端连接失败，已进入本机模式", "error");
+      }
     } finally {
       window.clearTimeout(failSafeTimer);
       revealApp();
-      initSupabase();
-      if (supabase) {
-        const cloud = await cloudLoad();
-        if (cloud && cloud.projects) {
-          store = normalizeStore(cloud);
-          persistStore();
-          toast("已从云端同步", "success");
-        }
-      }
     }
   }
 

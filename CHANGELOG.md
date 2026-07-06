@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.4.0 — Cloud Workspace Starter
+
+- Added Supabase cloud workspace support.
+- Added `supabase-schema.sql` for workspaces, share tokens, memberships, and cloud documents.
+- Added `cloud-config.js` for Project URL and anon / publishable key.
+- Added anonymous identity flow through Supabase Auth.
+- Added workspace creation and share-code opening on the homepage.
+- Added edit and read-only share links.
+- Added cloud sync status states.
+- Added cloud loading fallback and retry controls.
+- Added cloud document mode for Design Board, Timeline Planner, and Launch Checklist.
+- Kept each tool independent; no visible cross-tool sync.
+- Kept Launch Checklist private cost quote out of cloud payloads.
+
 ## v2.3.0 — Launch Checklist
 
 - Added Launch Checklist as the third Creative Toolbox tool.

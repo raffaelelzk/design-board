@@ -1,0 +1,370 @@
+/*
+  Creative Toolbox Hi Skin
+  Checked build: safe visual layer only.
+  It does NOT rewrite layout containers, grid, flex, width, max-width, or responsive breakpoints.
+*/
+
+:root {
+  --bg: #fbfdff;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-strong: #ffffff;
+  --surface-soft: #f5f8ff;
+  --text: #152033;
+  --muted: #6b7890;
+  --line: rgba(21, 32, 51, 0.10);
+  --line-strong: rgba(21, 32, 51, 0.16);
+  --accent: #5b74ff;
+  --accent-dark: #435cff;
+  --accent-soft: rgba(91, 116, 255, 0.10);
+  --soft: #eef3ff;
+  --danger: #ff6b7a;
+  --warning: #ffb45c;
+  --success: #34c985;
+  --info: #20d6c8;
+  --shadow: 0 24px 70px rgba(30, 44, 76, 0.11);
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+}
+
+html {
+  background: #fbfdff !important;
+}
+
+body {
+  color: var(--text) !important;
+  background:
+    radial-gradient(circle at 8% 4%, rgba(91, 116, 255, 0.14), transparent 26%),
+    radial-gradient(circle at 92% 8%, rgba(32, 214, 200, 0.13), transparent 24%),
+    radial-gradient(circle at 82% 74%, rgba(255, 180, 92, 0.10), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f6f9ff 46%, #ffffff 100%) !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  background-image:
+    linear-gradient(rgba(91,116,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91,116,255,0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.18) 68%, transparent 100%);
+  z-index: 0;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text);
+  letter-spacing: -0.045em;
+}
+
+p,
+small,
+.subtitle,
+.description,
+.desc,
+.hint,
+.muted,
+.section-count,
+.topbar-meta,
+.project-meta,
+.cloud-note,
+.toolbar-meta {
+  color: var(--muted) !important;
+}
+
+.eyebrow {
+  color: #5361b8 !important;
+  letter-spacing: .14em;
+}
+
+/* Navigation and high-level headers */
+.topbar,
+.dashboard-header,
+.editor-header,
+.page-heading,
+.workspace-heading,
+.cloud-workspace-panel {
+  background: rgba(255,255,255,.72) !important;
+  border-color: rgba(255,255,255,.92) !important;
+  box-shadow: 0 14px 38px rgba(30,44,76,.06) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.brand-mark,
+.project-icon,
+.project-card-icon,
+.empty-icon,
+.tool-icon {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.38), transparent 30%),
+    linear-gradient(135deg, #5b74ff, #8065ff 52%, #20d6c8) !important;
+  color: #fff !important;
+  box-shadow: 0 14px 30px rgba(91,116,255,.22) !important;
+}
+
+/* Panels and cards: visual only */
+.cloud-workspace-panel,
+.tool-card,
+.dashboard-section,
+.project-card,
+.new-project-card,
+.panel,
+.workspace-panel,
+.template-card,
+.product-panel,
+.product-detail-panel,
+.product-table,
+.table-wrap,
+.output-panel,
+.proposal-preview,
+.modal-card,
+.drawer,
+.risk-banner,
+.local-notice,
+.share-links-box,
+.workspace-list,
+.workspace-list-item,
+.empty-state,
+.inline-empty,
+.summary-strip,
+.toolbar,
+.task-card,
+.workflow-card {
+  background: rgba(255,255,255,.78) !important;
+  border-color: rgba(255,255,255,.94) !important;
+  box-shadow: 0 18px 48px rgba(30, 44, 76, .08) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.tool-card,
+.project-card,
+.new-project-card,
+.panel,
+.workspace-panel,
+.template-card,
+.product-panel,
+.product-detail-panel,
+.table-wrap,
+.output-panel,
+.proposal-preview,
+.modal-card,
+.drawer,
+.local-notice,
+.share-links-box,
+.workspace-list,
+.empty-state,
+.inline-empty,
+.summary-strip,
+.toolbar,
+.cloud-workspace-panel {
+  border-radius: var(--radius-lg) !important;
+}
+
+.tool-card:hover,
+.project-card:hover,
+.new-project-card:hover,
+.template-card:hover,
+.workspace-list-item:hover {
+  transform: translateY(-5px);
+  background: #fff !important;
+  border-color: rgba(91,116,255,.18) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* Inputs */
+input,
+textarea,
+select,
+[contenteditable="true"],
+.project-name-input,
+.search-input,
+.search-box input,
+.workspace-form input,
+.share-links-box input {
+  color: var(--text) !important;
+  background: rgba(255,255,255,.88) !important;
+  border-color: rgba(21,32,51,.10) !important;
+  box-shadow: 0 8px 20px rgba(30,44,76,.035);
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+[contenteditable="true"]:focus,
+.project-name-input:focus,
+.search-input:focus,
+.search-box input:focus,
+.workspace-form input:focus,
+.share-links-box input:focus {
+  outline: none !important;
+  background: #fff !important;
+  border-color: rgba(91,116,255,.34) !important;
+  box-shadow: 0 0 0 4px rgba(91,116,255,.10), 0 8px 20px rgba(30,44,76,.035) !important;
+}
+
+/* Buttons */
+.button,
+.cloud-button,
+.icon-button,
+.text-button,
+.ghost-link,
+.card-delete-button,
+.project-mini-button,
+.view-tab,
+.template-chip,
+.share-links-box button,
+button {
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.button,
+.cloud-button,
+.icon-button,
+.project-mini-button,
+.view-tab,
+.share-links-box button {
+  background: rgba(255,255,255,.88) !important;
+  color: var(--text) !important;
+  border-color: rgba(21,32,51,.10) !important;
+}
+
+.button:hover,
+.cloud-button:hover,
+.icon-button:hover,
+.project-mini-button:hover,
+.view-tab:hover,
+.share-links-box button:hover {
+  transform: translateY(-1px);
+  background: #fff !important;
+  border-color: rgba(91,116,255,.20) !important;
+  box-shadow: 0 14px 34px rgba(30,44,76,.08) !important;
+}
+
+.button.primary,
+.cloud-button.primary,
+.view-tab.active,
+button.primary,
+button[data-action="open-create"],
+button[data-action="open-create-project"] {
+  color: #fff !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, #5b74ff, #7867ff 52%, #20d6c8) !important;
+  box-shadow: 0 16px 38px rgba(91,116,255,.25) !important;
+}
+
+.button.primary:hover,
+.cloud-button.primary:hover,
+.view-tab.active:hover {
+  box-shadow: 0 20px 48px rgba(91,116,255,.34) !important;
+}
+
+/* Tags and status */
+.tag,
+.badge,
+.pill,
+.status,
+.cloud-status,
+.save-status,
+.project-risk-badge,
+.workspace-badge,
+.template-chip,
+.risk-pill,
+.product-status,
+.stage-badge {
+  background: rgba(91,116,255,.08) !important;
+  border-color: rgba(91,116,255,.10) !important;
+  color: #5361b8 !important;
+}
+
+.save-status.saved,
+.cloud-status.saved,
+.cloud-status.remote {
+  background: rgba(52,201,133,.10) !important;
+  color: #16895b !important;
+}
+
+.save-status.error,
+.cloud-status.error,
+.risk-banner {
+  background: rgba(255,107,122,.10) !important;
+  color: #bf3d4a !important;
+}
+
+/* Tables */
+table,
+.product-table {
+  border-color: rgba(21,32,51,.08) !important;
+}
+
+th,
+.product-table th {
+  color: #5260bb !important;
+  background: rgba(91,116,255,.08) !important;
+}
+
+td,
+.product-table td {
+  border-color: rgba(21,32,51,.07) !important;
+}
+
+tr:hover td,
+.product-table tbody tr:hover td {
+  background: rgba(91,116,255,.045) !important;
+}
+
+/* Decorative cursor light */
+.hi-cursor-light {
+  position: fixed;
+  width: 280px;
+  height: 280px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(91, 116, 255, .14), transparent 68%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: .74;
+  mix-blend-mode: multiply;
+  transition: opacity .2s ease;
+}
+
+.hi-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 90;
+  transform: translateX(-50%) translateY(18px);
+  opacity: 0;
+  pointer-events: none;
+  padding: 12px 16px;
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(255,255,255,.94);
+  box-shadow: 0 14px 34px rgba(30,44,76,.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  font-weight: 850;
+  transition: .24s ease;
+}
+
+.hi-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .hi-cursor-light {
+    display: none;
+  }
+}
