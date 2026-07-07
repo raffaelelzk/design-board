@@ -6,7 +6,7 @@
   <meta name="description" content="设计台板：面向文创与产品策划的项目工作台。">
   <title>设计台板 · Creative Toolbox</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="tool-theme.css?v=8">
+  <link rel="stylesheet" href="tool-theme.css?v=12">
 </head>
 <body>
   <div id="loading" class="loading-screen">
@@ -276,7 +276,7 @@
         <div class="cloud-share-heading">
           <div>
             <strong>云端短链接</strong>
-            <p>仅在点击生成时上传当前快照；图片和附件进入私有 Storage。</p>
+            <p>生成后，下方二维码会自动切换为云端短链接二维码；图片和附件从私有 Storage 读取。</p>
           </div>
           <span id="cloudShareStatus" class="cloud-share-status">正在检查配置</span>
         </div>
@@ -289,13 +289,13 @@
           <p id="cloudShareNote">链接接收者会自动匿名登录，并导入一份自己的本地副本。</p>
         </div>
       </section>
-      <div class="share-section-divider"><span>离线分享</span></div>
+      <div class="share-section-divider"><span>二维码与离线分享</span></div>
       <div class="share-delivery-grid">
         <section class="share-qr-panel">
           <canvas id="projectShareQrCanvas" class="share-qr-canvas" aria-label="项目分享二维码"></canvas>
           <div id="projectShareQrFallback" class="share-qr-fallback" hidden></div>
-          <strong>扫码打开项目</strong>
-          <p>网站部署后，对方扫码会打开对应页面，并自动带入待导入项目。</p>
+          <strong id="shareQrHeading">扫码打开项目</strong>
+          <p id="shareQrDescription">小项目使用离线二维码；生成云端短链接后，这里会显示不受图片数量影响的云端二维码。</p>
         </section>
         <section class="share-options-panel">
           <div class="share-meta">
@@ -327,8 +327,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=1"></script>
   <script src="cloud-share.js?v=1"></script>
-  <script src="qr-code.js?v=2"></script>
-  <script src="share-code.js?v=2"></script>
+  <script src="qr-code.js?v=3"></script>
+  <script src="share-code.js?v=3"></script>
   <script>
 (() => {
   "use strict";
@@ -1713,6 +1713,9 @@
     generateButton.textContent = ready ? "生成云端短链接" : "配置后可用";
     status.textContent = ready ? "已连接" : "未配置";
     status.className = `cloud-share-status ${ready ? "ready" : "error"}`;
+    $("#shareQrHeading").textContent = "扫码打开项目";
+    $("#shareQrDescription").textContent =
+      "小项目使用离线二维码；生成云端短链接后，这里会显示不受图片数量影响的云端二维码。";
     if (!ready) $("#cloudShareNote").textContent = window.CreativeCloud?.configurationMessage?.() || "云端分享未配置。";
   }
 
@@ -1745,6 +1748,21 @@
       $("#cloudShareOutput").value = result.link;
       $("#cloudShareResult").hidden = false;
       $("#copyCloudShareButton").hidden = false;
+      const cloudQr = window.CreativeShare.renderLinkQr(
+        $("#projectShareQrCanvas"),
+        $("#projectShareQrFallback"),
+        result.link,
+        { size: 300 }
+      );
+      $("#shareQrHeading").textContent = cloudQr.available
+        ? "扫码打开云端项目"
+        : "云端二维码生成失败";
+      $("#shareQrDescription").textContent = cloudQr.available
+        ? "二维码只包含短链接，项目图片和附件会从私有云端安全读取。"
+        : "请复制上方云端短链接发送给对方。";
+      $("#projectShareQrStatus").textContent = cloudQr.available
+        ? "云端二维码可扫码"
+        : "云端二维码生成失败";
       $("#cloudShareNote").textContent = `已上传 ${result.assetCount} 个文件；链接接收者会导入自己的本地副本。`;
       status.textContent = "短链接已生成";
       status.className = "cloud-share-status ready";

@@ -1381,6 +1381,9 @@
     generateButton.textContent = ready ? "生成云端短链接" : "配置后可用";
     status.textContent = ready ? "已连接" : "未配置";
     status.className = `cloud-share-status ${ready ? "ready" : "error"}`;
+    $("#shareQrHeading").textContent = "扫码打开项目";
+    $("#shareQrDescription").textContent =
+      "小项目使用离线二维码；生成云端短链接后，这里会显示不受图片数量影响的云端二维码。";
     if (!ready) $("#cloudShareNote").textContent = window.CreativeCloud?.configurationMessage?.() || "云端分享未配置。";
   }
 
@@ -1413,6 +1416,21 @@
       $("#cloudShareOutput").value = result.link;
       $("#cloudShareResult").hidden = false;
       $("#copyCloudShareButton").hidden = false;
+      const cloudQr = window.CreativeShare.renderLinkQr(
+        $("#projectShareQrCanvas"),
+        $("#projectShareQrFallback"),
+        result.link,
+        { size: 300 }
+      );
+      $("#shareQrHeading").textContent = cloudQr.available
+        ? "扫码打开云端项目"
+        : "云端二维码生成失败";
+      $("#shareQrDescription").textContent = cloudQr.available
+        ? "二维码只包含短链接，项目图片和附件会从私有云端安全读取。"
+        : "请复制上方云端短链接发送给对方。";
+      $("#projectShareQrStatus").textContent = cloudQr.available
+        ? "云端二维码可扫码"
+        : "云端二维码生成失败";
       $("#cloudShareNote").textContent = `已上传 ${result.assetCount} 个文件；链接接收者会导入自己的本地副本。`;
       status.textContent = "短链接已生成";
       status.className = "cloud-share-status ready";

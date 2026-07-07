@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.4.3 — Cloud QR & Hidden Modal Scrollbar
+
+- Hidden the visual scrollbar inside share modals while retaining mouse-wheel and touch scrolling.
+- Added direct QR rendering for cloud short links.
+- Cloud QR codes remain short even when projects contain many images or attachments.
+- After a cloud link is generated, the existing QR panel automatically switches to the cloud-link QR.
+- Updated large offline-share fallback text to recommend cloud QR or `.ctbshare`.
+- Applied the behavior to Design Board, Timeline Planner and Launch Checklist.
+
 ## v3.4.2 — Share Redemption Ambiguity Fix
 
 - Fixed `column reference "project_id" is ambiguous` in `ct_redeem_share()`.

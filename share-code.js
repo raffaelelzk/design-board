@@ -149,7 +149,25 @@
       canvas.hidden = true;
       if (fallback) {
         fallback.hidden = false;
-        fallback.textContent = "当前内容较多，单个二维码无法容纳。请下载分享文件发送给对方。";
+        fallback.textContent = "当前内容较多，单个二维码无法容纳。可生成云端短链接二维码，或下载分享文件。";
+      }
+      return { available: false, link, error };
+    }
+  }
+
+  function renderLinkQr(canvas, fallback, link, options = {}) {
+    try {
+      if (!window.CreativeQR) throw new Error("二维码组件未加载");
+      if (!/^https?:\/\//i.test(String(link || ""))) throw new Error("短链接无效");
+      window.CreativeQR.render(canvas, link, options);
+      canvas.hidden = false;
+      if (fallback) fallback.hidden = true;
+      return { available: true, link };
+    } catch (error) {
+      canvas.hidden = true;
+      if (fallback) {
+        fallback.hidden = false;
+        fallback.textContent = "云端二维码生成失败，请复制云端短链接发送给对方。";
       }
       return { available: false, link, error };
     }
@@ -165,6 +183,7 @@
     clearLocationCode,
     download,
     readFile,
-    renderQr
+    renderQr,
+    renderLinkQr
   };
 })();

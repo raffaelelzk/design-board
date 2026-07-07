@@ -593,3 +593,15 @@ body::before{
   .cloud-share-status{justify-self:start}
   .cloud-share-actions .button{flex:1}
 }
+
+
+/* v3.4.3 share modal polish */
+.share-modal-card{
+  scrollbar-width:none!important;
+  -ms-overflow-style:none!important;
+}
+.share-modal-card::-webkit-scrollbar{
+  width:0!important;
+  height:0!important;
+  display:none!important;
+}

@@ -6,7 +6,7 @@
   <meta name="description" content="产品生产资料与交付检查工具。">
   <title>上线清单 · Creative Toolbox</title>
   <link rel="stylesheet" href="launch.css">
-  <link rel="stylesheet" href="tool-theme.css?v=10">
+  <link rel="stylesheet" href="tool-theme.css?v=12">
 </head>
 <body>
   <header class="topbar">
@@ -420,7 +420,7 @@
         <div class="cloud-share-heading">
           <div>
             <strong>云端短链接</strong>
-            <p>仅在点击生成时上传当前快照；图片和附件进入私有 Storage。</p>
+            <p>生成后，下方二维码会自动切换为云端短链接二维码；图片和附件从私有 Storage 读取。</p>
           </div>
           <span id="cloudShareStatus" class="cloud-share-status">正在检查配置</span>
         </div>
@@ -433,13 +433,13 @@
           <p id="cloudShareNote">链接接收者会自动匿名登录，并导入一份自己的本地副本。</p>
         </div>
       </section>
-      <div class="share-section-divider"><span>离线分享</span></div>
+      <div class="share-section-divider"><span>二维码与离线分享</span></div>
       <div class="share-delivery-grid">
         <section class="share-qr-panel">
           <canvas id="shareProjectQrCanvas" class="share-qr-canvas" aria-label="清单分享二维码"></canvas>
           <div id="shareProjectQrFallback" class="share-qr-fallback" hidden></div>
-          <strong>扫码打开清单</strong>
-          <p>网站部署后，对方扫码会打开对应页面，并自动带入待导入清单。</p>
+          <strong id="shareQrHeading">扫码打开清单</strong>
+          <p id="shareQrDescription">小项目使用离线二维码；生成云端短链接后，这里会显示不受图片数量影响的云端二维码。</p>
         </section>
         <section class="share-options-panel">
           <div class="share-meta">
@@ -478,8 +478,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js?v=1"></script>
   <script src="cloud-share.js?v=1"></script>
-  <script src="qr-code.js?v=2"></script>
-  <script src="share-code.js?v=2"></script>
-  <script src="launch.js?v=10"></script>
+  <script src="qr-code.js?v=3"></script>
+  <script src="share-code.js?v=3"></script>
+  <script src="launch.js?v=12"></script>
 </body>
 </html>
