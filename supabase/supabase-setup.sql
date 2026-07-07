@@ -245,11 +245,10 @@ for insert
 to authenticated
 with check (
   bucket_id = 'creative-cloud-assets'
-  and exists (
-    select 1
+  and (storage.foldername(name))[1] in (
+    select project.id::text
     from public.ct_cloud_projects project
-    where project.id::text = (storage.foldername(name))[1]
-      and project.owner_id = (select auth.uid())
+    where project.owner_id = (select auth.uid())
   )
 );
 
@@ -260,20 +259,17 @@ for select
 to authenticated
 using (
   bucket_id = 'creative-cloud-assets'
-  and exists (
-    select 1
+  and (storage.foldername(name))[1] in (
+    select project.id::text
     from public.ct_cloud_projects project
-    where project.id::text = (storage.foldername(name))[1]
-      and (
-        project.owner_id = (select auth.uid())
-        or exists (
-          select 1
-          from public.ct_cloud_project_members member
-          where member.project_id = project.id
-            and member.user_id = (select auth.uid())
-            and (member.expires_at is null or member.expires_at > now())
-        )
-      )
+    where project.owner_id = (select auth.uid())
+       or exists (
+         select 1
+         from public.ct_cloud_project_members member
+         where member.project_id = project.id
+           and member.user_id = (select auth.uid())
+           and (member.expires_at is null or member.expires_at > now())
+       )
   )
 );
 
@@ -284,20 +280,18 @@ for update
 to authenticated
 using (
   bucket_id = 'creative-cloud-assets'
-  and exists (
-    select 1
+  and (storage.foldername(name))[1] in (
+    select project.id::text
     from public.ct_cloud_projects project
-    where project.id::text = (storage.foldername(name))[1]
-      and project.owner_id = (select auth.uid())
+    where project.owner_id = (select auth.uid())
   )
 )
 with check (
   bucket_id = 'creative-cloud-assets'
-  and exists (
-    select 1
+  and (storage.foldername(name))[1] in (
+    select project.id::text
     from public.ct_cloud_projects project
-    where project.id::text = (storage.foldername(name))[1]
-      and project.owner_id = (select auth.uid())
+    where project.owner_id = (select auth.uid())
   )
 );
 
@@ -308,10 +302,9 @@ for delete
 to authenticated
 using (
   bucket_id = 'creative-cloud-assets'
-  and exists (
-    select 1
+  and (storage.foldername(name))[1] in (
+    select project.id::text
     from public.ct_cloud_projects project
-    where project.id::text = (storage.foldername(name))[1]
-      and project.owner_id = (select auth.uid())
+    where project.owner_id = (select auth.uid())
   )
 );

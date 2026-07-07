@@ -89,3 +89,33 @@ shareExpiresDays: 1
 - URL 以 `https://` 开头并以 `.supabase.co` 结尾
 - Publishable key 不是占位符
 - 浏览器能访问 jsDelivr 和 Supabase
+
+
+## v3.4.1 Storage 策略检查
+
+在 Supabase SQL Editor 中执行：
+
+```sql
+select policyname, qual, with_check
+from pg_policies
+where schemaname = 'storage'
+  and tablename = 'objects'
+  and policyname like 'ct_assets_%'
+order by policyname;
+```
+
+策略中应看到：
+
+```text
+(storage.foldername(name))[1]
+```
+
+位于外层条件中，并通过 `in (select project.id::text ...)` 判断权限。
+
+不应再看到：
+
+```text
+storage.foldername(project.name)
+```
+
+或在 `ct_cloud_projects` 子查询内部直接使用未限定的 `name`。

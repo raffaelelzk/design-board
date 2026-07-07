@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.4.1 — Storage RLS Name-Collision Fix
+
+- Fixed a PostgreSQL name-resolution bug in all four Storage policies.
+- Moved `storage.foldername(name)` outside the project-table subquery.
+- Prevented `name` from binding to `ct_cloud_projects.name`.
+- Added `supabase/fix-storage-policy-v3.4.1.sql` for existing v3.4.0 deployments.
+- Added policy verification instructions to the cloud test checklist.
+
 ## v3.4.0 — Optional Private Cloud Sharing
 
 - Added optional Supabase anonymous authentication.

@@ -1,3 +1,21 @@
+## v3.4.1 已部署项目修复
+
+如果你已经部署过 v3.4.0，并且生成云端短链接时报：
+
+```text
+new row violates row-level security policy
+```
+
+不要重复执行旧版安装脚本。请在 Supabase SQL Editor 中执行：
+
+```text
+supabase/fix-storage-policy-v3.4.1.sql
+```
+
+根因是旧 Storage 策略中的 `storage.foldername(name)` 在子查询里与
+`ct_cloud_projects.name` 撞名，Postgres 将 `name` 解析成了项目名称，
+导致图片路径永远无法匹配项目 UUID。v3.4.1 已把路径判断移到子查询外层。
+
 # 免费 Supabase 云端分享配置
 
 这个版本仍然是“本地优先”：

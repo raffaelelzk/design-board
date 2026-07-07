@@ -94,6 +94,7 @@ supabase-config.js               可选云端分享配置
 cloud-share.js                   匿名登录、私有文件与短链接
 supabase/CLOUD_SETUP.md          Supabase 配置步骤
 supabase/supabase-setup.sql      建表、RPC、RLS 与 Storage 策略
+supabase/fix-storage-policy-v3.4.1.sql  已部署 v3.4.0 的 Storage 策略修复
 app.js                           设计台板运行逻辑
 timeline.js                      排期规划运行逻辑
 launch.js                        上线清单运行逻辑
