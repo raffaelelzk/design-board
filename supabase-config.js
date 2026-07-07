@@ -10,9 +10,9 @@
  * Publishable key 可以出现在前端；不要填写 service_role / secret key。
  */
 window.CreativeCloudConfig = {
-  enabled: false,
-  supabaseUrl: "https://YOUR_PROJECT.supabase.co",
-  publishableKey: "YOUR_PUBLISHABLE_KEY",
+  enabled: true,
+  supabaseUrl: "https://rvklyahwvczxtpqxdnpl.supabase.co",
+  publishableKey: "sb_publishable_GWRqFsgEVaa02WKtGQkAfw_8NCVDxvj",
   bucket: "creative-cloud-assets",
   shareExpiresDays: 30,
   imageMaxDimension: 1600,
