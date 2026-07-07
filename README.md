@@ -103,3 +103,5 @@ launch.js                        上线清单运行逻辑
 ## 重要提醒
 
 匿名用户清除浏览器数据、退出或更换设备后，无法恢复同一个匿名身份。重要项目仍建议定期下载 `.ctbshare` 备份。
+
+- `supabase/fix-redeem-share-ambiguity-v3.4.2.sql`：云端链接领取函数修复。

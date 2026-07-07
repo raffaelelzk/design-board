@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.4.2 — Share Redemption Ambiguity Fix
+
+- Fixed `column reference "project_id" is ambiguous` in `ct_redeem_share()`.
+- Replaced `ON CONFLICT (project_id, user_id)` with the explicit primary-key constraint.
+- Added `supabase/fix-redeem-share-ambiguity-v3.4.2.sql`.
+- Existing cloud projects and share tokens remain compatible.
+
 ## v3.4.1 — Storage RLS Name-Collision Fix
 
 - Fixed a PostgreSQL name-resolution bug in all four Storage policies.

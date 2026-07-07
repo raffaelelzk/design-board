@@ -1,3 +1,27 @@
+## v3.4.2 云端链接读取修复
+
+如果打开云端链接时报：
+
+```text
+column reference "project_id" is ambiguous
+```
+
+请在 Supabase SQL Editor 中执行：
+
+```text
+supabase/fix-redeem-share-ambiguity-v3.4.2.sql
+```
+
+根因是 `ct_redeem_share()` 的返回字段也叫 `project_id`，旧函数中的
+`on conflict (project_id, user_id)` 无法区分表字段和 PL/pgSQL 输出变量。
+v3.4.2 改为明确引用主键约束：
+
+```sql
+on conflict on constraint ct_cloud_project_members_pkey
+```
+
+现有项目、图片和分享链接不需要删除或重新创建。
+
 ## v3.4.1 已部署项目修复
 
 如果你已经部署过 v3.4.0，并且生成云端短链接时报：

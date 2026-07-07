@@ -210,7 +210,7 @@ begin
 
   insert into public.ct_cloud_project_members (project_id, user_id, role, expires_at)
   values (v_share.project_id, v_user_id, v_share.role, v_share.expires_at)
-  on conflict (project_id, user_id)
+  on conflict on constraint ct_cloud_project_members_pkey
   do update set
     role = excluded.role,
     expires_at = excluded.expires_at;
